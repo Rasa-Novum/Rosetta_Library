@@ -3,11 +3,12 @@ loaderVersion="${loader_version_range}"
 license="MIT"
 
 [[mods]]
+authors="${mod_authors}"
 modId="rosetta_library"
 version="${version}"
 displayName="Rosetta"
 logoFile="logo.png"
-description='''Cross-version and cross-loader compatibility primitives for Minecraft mods.'''
+description='''${mod_description}'''
 
 [[dependencies.rosetta_library]]
 modId="minecraft"

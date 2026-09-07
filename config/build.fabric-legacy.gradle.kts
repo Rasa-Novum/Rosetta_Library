@@ -15,8 +15,8 @@ fun prop(name: String): String = versionProperties.getProperty(name)
     ?: rootProject.findProperty(name)?.toString()
     ?: error("Missing property '$name'")
 
-version = prop("mod_version")
-base.archivesName = prop("archives_base_name")
+version = prop("config_version")
+base.archivesName = "Rosetta-Config"
 
 repositories {
     mavenCentral()
@@ -32,8 +32,10 @@ dependencies {
 tasks.processResources {
     val props = mapOf(
         "version" to project.version,
-        "mod_description" to groovy.json.JsonOutput.toJson(prop("mod_description")),
+        "mod_description" to groovy.json.JsonOutput.toJson(prop("config_description")),
         "mod_authors" to groovy.json.JsonOutput.toJson(prop("mod_authors").split(",").map { it.trim() }),
+        "rosetta_version" to prop("mod_version"),
+        "midnight_version" to prop("deps.midnightlib").substringBefore('+'),
         "minecraft_version" to prop("deps.minecraft"),
         "loader_version" to prop("deps.loader"),
     )
@@ -81,5 +83,11 @@ tasks.named<AbstractArchiveTask>("remapJar") {
 }
 tasks.named<AbstractArchiveTask>("remapSourcesJar") { archiveClassifier.set("${project.name}-sources") }
 
-apply(from = rootProject.file("gradle/rosetta-publishing.gradle.kts"))
+apply(from = rootProject.file("gradle/rosetta-config-publishing.gradle.kts"))
 apply(from = rootProject.file("gradle/rosetta-pack-metadata.gradle.kts"))
+
+repositories { maven("https://api.modrinth.com/maven") }
+dependencies {
+    implementation(project(path = ":${project.name}", configuration = "namedElements"))
+    modImplementation("maven.modrinth:midnightlib:${prop("deps.midnightlib")}")
+}

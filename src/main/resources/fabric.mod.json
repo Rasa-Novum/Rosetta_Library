@@ -3,8 +3,8 @@
   "id": "rosetta_library",
   "version": "${version}",
   "name": "Rosetta",
-  "description": "Cross-version and cross-loader compatibility primitives for Minecraft mods.",
-  "authors": ["Rasa Novum"],
+  "description": ${mod_description},
+  "authors": ${mod_authors},
   "contact": {
     "sources": "https://github.com/Rasa-Novum/Rosetta_Library"
   },

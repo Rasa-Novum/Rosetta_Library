@@ -6,7 +6,7 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Attributes
 import java.util.jar.Manifest
 
-plugins { id("fabric-loom") }
+plugins { id("net.fabricmc.fabric-loom") }
 
 val versionProperties = Properties().apply {
     file("gradle.properties").inputStream().use(::load)
@@ -15,25 +15,23 @@ fun prop(name: String): String = versionProperties.getProperty(name)
     ?: rootProject.findProperty(name)?.toString()
     ?: error("Missing property '$name'")
 
-version = prop("mod_version")
-base.archivesName = prop("archives_base_name")
+version = prop("config_version")
+base.archivesName = "Rosetta-Config"
 
-repositories {
-    mavenCentral()
-}
-
+repositories { mavenCentral() }
 dependencies {
     minecraft("com.mojang:minecraft:${prop("deps.minecraft")}")
-    mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:${prop("deps.loader")}")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:${prop("deps.fabric-api")}")
+    implementation("net.fabricmc:fabric-loader:${prop("deps.loader")}")
+    implementation("net.fabricmc.fabric-api:fabric-api:${prop("deps.fabric-api")}")
 }
 
 tasks.processResources {
     val props = mapOf(
         "version" to project.version,
-        "mod_description" to groovy.json.JsonOutput.toJson(prop("mod_description")),
+        "mod_description" to groovy.json.JsonOutput.toJson(prop("config_description")),
         "mod_authors" to groovy.json.JsonOutput.toJson(prop("mod_authors").split(",").map { it.trim() }),
+        "rosetta_version" to prop("mod_version"),
+        "midnight_version" to prop("deps.midnightlib").substringBefore('+'),
         "minecraft_version" to prop("deps.minecraft"),
         "loader_version" to prop("deps.loader"),
     )
@@ -51,6 +49,7 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     withSourcesJar()
 }
+tasks.named<AbstractArchiveTask>("sourcesJar") { archiveClassifier.set("${project.name}-sources") }
 
 fun stripFabricLoomVersion(archive: java.io.File) {
     val temporary = archive.resolveSibling("${archive.name}.tmp")
@@ -75,11 +74,16 @@ fun stripFabricLoomVersion(archive: java.io.File) {
     temporary.delete()
 }
 
-tasks.named<AbstractArchiveTask>("remapJar") {
+tasks.jar {
     archiveClassifier.set(project.name)
     doLast { stripFabricLoomVersion(archiveFile.get().asFile) }
 }
-tasks.named<AbstractArchiveTask>("remapSourcesJar") { archiveClassifier.set("${project.name}-sources") }
 
-apply(from = rootProject.file("gradle/rosetta-publishing.gradle.kts"))
+apply(from = rootProject.file("gradle/rosetta-config-publishing.gradle.kts"))
 apply(from = rootProject.file("gradle/rosetta-pack-metadata.gradle.kts"))
+
+repositories { maven("https://api.modrinth.com/maven") }
+dependencies {
+    implementation(project(":${project.name}"))
+    implementation("maven.modrinth:midnightlib:${prop("deps.midnightlib")}")
+}

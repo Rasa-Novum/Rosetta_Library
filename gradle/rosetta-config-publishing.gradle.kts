@@ -10,7 +10,7 @@ val minecraftVersion = target.substringBeforeLast('-')
 val loader = target.substringAfterLast('-')
 val isLegacyFabric = loader == "fabric" && minecraftVersion in setOf("1.20.1", "1.21.1")
 
-group = "com.rasanovum.rosetta"
+group = "com.rasanovum.rosetta.config"
 
 val modJar = if (isLegacyFabric) {
     tasks.named<AbstractArchiveTask>("remapJar")
@@ -34,9 +34,9 @@ extensions.configure<PublishingExtension> {
         }
     }
     publications {
-        create<MavenPublication>("rosetta") {
-            groupId = project.group.toString()
-            artifactId = "rosetta-$target"
+        create<MavenPublication>("rosettaConfig") {
+            groupId = "com.rasanovum.rosetta"
+            artifactId = "rosetta-config-$target"
             version = project.version.toString()
 
             artifact(modJar) {
@@ -46,9 +46,22 @@ extensions.configure<PublishingExtension> {
                 classifier = "sources"
             }
 
+            pom.withXml {
+                val dependencies = asNode().appendNode("dependencies")
+                fun dependency(group: String, artifact: String, version: String) {
+                    val node = dependencies.appendNode("dependency")
+                    node.appendNode("groupId", group)
+                    node.appendNode("artifactId", artifact)
+                    node.appendNode("version", version)
+                    node.appendNode("scope", "compile")
+                }
+                dependency("com.rasanovum.rosetta", "rosetta-$target", rootProject.property("mod_version").toString())
+                val midnightVersion = if (minecraftVersion == "26.1") "1.9.3" else "1.9.1"
+                dependency("maven.modrinth", "midnightlib", "$midnightVersion+$target")
+            }
             pom {
-                name = "Rosetta ($target)"
-                description = rootProject.property("mod_description").toString()
+                name = "Rosetta Config ($target)"
+                description = rootProject.property("config_description").toString()
                 url = "https://github.com/Rasa-Novum/Rosetta_Library"
                 developers {
                     rootProject.property("mod_authors").toString().split(",").forEach { author ->

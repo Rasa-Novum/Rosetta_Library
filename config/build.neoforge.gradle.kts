@@ -10,19 +10,21 @@ fun prop(name: String): String = versionProperties.getProperty(name)
     ?: rootProject.findProperty(name)?.toString()
     ?: error("Missing property '$name'")
 
-version = prop("mod_version")
-base.archivesName = prop("archives_base_name")
+version = prop("config_version")
+base.archivesName = "Rosetta-Config"
 
 neoForge {
     version = prop("deps.neoforge")
-    mods { register("rosetta_library") { sourceSet(sourceSets.main.get()) } }
+    mods { register("rosetta_config") { sourceSet(sourceSets.main.get()) } }
 }
 
 tasks.processResources {
     val props = mapOf(
         "version" to project.version,
-        "mod_description" to prop("mod_description"),
+        "mod_description" to prop("config_description"),
         "mod_authors" to prop("mod_authors"),
+        "rosetta_version" to prop("mod_version"),
+        "midnight_version" to prop("deps.midnightlib").substringBefore('+'),
         "minecraft_version_range" to prop("deps.minecraft_range"),
         "loader_version_range" to "[4,)",
     )
@@ -47,5 +49,11 @@ tasks.jar {
     exclude("net/rasanovum/rosetta/loaders/fabric/mixin/**")
 }
 
-apply(from = rootProject.file("gradle/rosetta-publishing.gradle.kts"))
+apply(from = rootProject.file("gradle/rosetta-config-publishing.gradle.kts"))
 apply(from = rootProject.file("gradle/rosetta-pack-metadata.gradle.kts"))
+
+repositories { maven("https://api.modrinth.com/maven") }
+dependencies {
+    implementation(project(":${project.name}"))
+    implementation("maven.modrinth:midnightlib:${prop("deps.midnightlib")}")
+}

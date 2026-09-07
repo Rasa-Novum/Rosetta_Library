@@ -7,3 +7,4 @@ run/
 *.iml
 out/
 /libs/
+/tests

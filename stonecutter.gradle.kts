@@ -1,5 +1,6 @@
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.Sync
 
 plugins {
     id("dev.kikugie.stonecutter")
@@ -85,6 +86,18 @@ stonecutter {
             direction = !legacyNames
             replace("\\bGuiGraphics\\b", "GuiGraphicsExtractor")
             reverse("\\bGuiGraphicsExtractor\\b", "GuiGraphics")
+        }
+    }
+}
+
+tasks.register<Sync>("buildConfigArtifacts") {
+    group = "build"
+    description = "Builds the six optional Rosetta Config jars."
+    dependsOn(releaseTargets.map { ":config:$it:build" })
+    into(layout.buildDirectory.dir("release-config"))
+    releaseTargets.forEach { target ->
+        from(layout.projectDirectory.dir("config/versions/$target/build/libs")) {
+            include("Rosetta-Config-${providers.gradleProperty("config_version").get()}-$target.jar")
         }
     }
 }

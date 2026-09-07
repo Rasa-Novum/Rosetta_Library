@@ -105,3 +105,7 @@ ExampleContent.REGISTRAR.register(RegistrationContext.create(modEventBus));
 Use `handle.get()` wherever the registered value is needed. Calling it before that registry's loader event finishes throws an error naming the unavailable identifier. `register(BuiltInRegistries.SOME_REGISTRY, path, factory)` covers other vanilla registries; paths are namespace-relative and duplicate paths in the same registry are rejected.
 
 Creative-tab declarations are attached by the same single `register(RegistrationContext)` call. `add(handle)`, `add(BlockItemEntry)`, and `add(ItemLike)` cover ordinary entries. `addStack(key, supplier)` creates one dynamic stack per rebuild, while `addStacks(key, output -> ...)` can emit any number of configured variants. Entry and callback order is declaration order; duplicate entries or callback keys and declarations made after registrar attachment fail descriptively.
+
+## Configuration Artifact
+
+[Rosetta Config](docs/CONFIGURATION.md) provides server-owned MidnightLib settings, synchronization and disabled GUI indicators.

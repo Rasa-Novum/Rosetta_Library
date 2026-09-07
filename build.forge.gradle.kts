@@ -21,6 +21,8 @@ legacyForge {
 tasks.processResources {
     val props = mapOf(
         "version" to project.version,
+        "mod_description" to prop("mod_description"),
+        "mod_authors" to prop("mod_authors"),
         "minecraft_version_range" to prop("deps.minecraft_range"),
         "loader_version_range" to prop("deps.forge_range"),
     )
