@@ -90,4 +90,5 @@ repositories { maven("https://api.modrinth.com/maven") }
 dependencies {
     implementation(project(path = ":${project.name}", configuration = "namedElements"))
     modImplementation("maven.modrinth:midnightlib:${prop("deps.midnightlib")}")
+    include("maven.modrinth:midnightlib:${prop("deps.midnightlib")}")
 }

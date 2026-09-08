@@ -55,7 +55,7 @@ apply(from = rootProject.file("gradle/rosetta-pack-metadata.gradle.kts"))
 repositories { maven("https://api.modrinth.com/maven") }
 dependencies {
     implementation(project(":${project.name}"))
-    implementation("maven.modrinth:midnightlib:${prop("deps.midnightlib")}")
+    jarJar(implementation("maven.modrinth:midnightlib:${prop("deps.midnightlib")}")!!)
 }
 
 tasks.jar { manifest.attributes["MixinConfigs"] = "rosetta-config.mixins.json" }
