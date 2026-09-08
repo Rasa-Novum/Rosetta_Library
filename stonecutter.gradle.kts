@@ -64,8 +64,9 @@ tasks.register("buildReleaseArtifacts") {
 
 tasks.register("publishMavenArtifacts") {
     group = "publishing"
-    description = "Publishes the supported Rosetta mod jars into build/maven-repository."
+    description = "Publishes the supported Rosetta and Rosetta Config artifacts into build/maven-repository."
     dependsOn(mavenTargets.map { ":$it:publishRosettaPublicationToLocalRepository" })
+    dependsOn(mavenTargets.map { ":config:$it:publishRosettaConfigPublicationToLocalRepository" })
 }
 
 stonecutter {
