@@ -9,8 +9,13 @@ val packFormat = when (minecraftVersion) {
 }
 
 tasks.named<ProcessResources>("processResources") {
-    inputs.property("rosettaPackFormat", packFormat)
+    val packFormatFields = if (minecraftVersion == "26.1") {
+        "\"min_format\": $packFormat, \"max_format\": $packFormat"
+    } else {
+        "\"pack_format\": $packFormat"
+    }
+    inputs.property("rosettaPackFormatFields", packFormatFields)
     filesMatching("pack.mcmeta") {
-        expand("pack_format" to packFormat)
+        expand("pack_format_fields" to packFormatFields)
     }
 }

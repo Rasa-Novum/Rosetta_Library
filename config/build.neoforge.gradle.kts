@@ -57,3 +57,5 @@ dependencies {
     implementation(project(":${project.name}"))
     implementation("maven.modrinth:midnightlib:${prop("deps.midnightlib")}")
 }
+
+apply(from = rootProject.file("gradle/rosetta-release-size.gradle.kts"))

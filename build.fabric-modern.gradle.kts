@@ -1,10 +1,5 @@
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import java.util.Properties
-import java.util.jar.JarEntry
-import java.util.jar.JarFile
-import java.util.jar.JarOutputStream
-import java.util.jar.Attributes
-import java.util.jar.Manifest
 
 plugins { id("net.fabricmc.fabric-loom") }
 
@@ -49,33 +44,11 @@ java {
 }
 tasks.named<AbstractArchiveTask>("sourcesJar") { archiveClassifier.set("${project.name}-sources") }
 
-fun stripFabricLoomVersion(archive: java.io.File) {
-    val temporary = archive.resolveSibling("${archive.name}.tmp")
-    JarFile(archive).use { input ->
-        val manifest = (input.manifest ?: Manifest()).apply {
-            mainAttributes.remove(Attributes.Name("Fabric-Loom-Version"))
-        }
-
-        JarOutputStream(temporary.outputStream(), manifest).use { output ->
-            input.entries().asSequence()
-                .filterNot { it.name == JarFile.MANIFEST_NAME }
-                .forEach { entry ->
-                    output.putNextEntry(JarEntry(entry.name).apply { time = entry.time })
-                    if (!entry.isDirectory) {
-                        input.getInputStream(entry).use { it.copyTo(output) }
-                    }
-                    output.closeEntry()
-                }
-        }
-    }
-    temporary.copyTo(archive, overwrite = true)
-    temporary.delete()
-}
-
 tasks.jar {
     archiveClassifier.set(project.name)
-    doLast { stripFabricLoomVersion(archiveFile.get().asFile) }
 }
 
 apply(from = rootProject.file("gradle/rosetta-publishing.gradle.kts"))
 apply(from = rootProject.file("gradle/rosetta-pack-metadata.gradle.kts"))
+
+apply(from = rootProject.file("gradle/rosetta-release-size.gradle.kts"))

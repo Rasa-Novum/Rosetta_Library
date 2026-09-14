@@ -25,6 +25,11 @@ public final class ConfigSync {
     public static final int MAX_LENGTH = 30000;
     private static final Gson JSON = new Gson();
     private static final Map<String, Consumer<MinecraftServer>> SERVER_CHANGES = new HashMap<>();
+    private static final ClassValue<List<Field>> SERVER_FIELDS = new ClassValue<>() {
+        @Override protected List<Field> computeValue(Class<?> type) {
+            return Arrays.stream(type.getFields()).filter(ConfigSync::isServerSetting).toList();
+        }
+    };
     private static volatile MinecraftServer server;
 
     private ConfigSync() {}
@@ -61,7 +66,7 @@ public final class ConfigSync {
         } catch (RuntimeException error) {
             System.getLogger(ConfigSync.class.getName()).log(System.Logger.Level.ERROR, id + " config refresh failed", error);
         } finally {
-            server.getPlayerList().getPlayers().forEach(player -> sync(id, player));
+            broadcast(id);
         }
     }
 
@@ -72,7 +77,7 @@ public final class ConfigSync {
     }
 
     public static List<Field> fields(Class<?> type) {
-        return Arrays.stream(type.getFields()).filter(ConfigSync::isServerSetting).toList();
+        return SERVER_FIELDS.get(type);
     }
 
     public static Object copy(Object value) { return value instanceof List<?> list ? new ArrayList<>(list) : value; }
@@ -112,18 +117,37 @@ public final class ConfigSync {
         return values;
     }
 
+    private static String syncValues(String id, MidnightConfig config) {
+        String values = snapshot(config).toString();
+        if (values.equals("{}")) return null;
+        if (values.length() > MAX_LENGTH) {
+            System.getLogger(ConfigSync.class.getName()).log(System.Logger.Level.ERROR, id + " config exceeds sync packet limit");
+            return null;
+        }
+        return values;
+    }
+
+    private static void broadcast(String id) {
+        MidnightConfig config = MidnightConfig.configInstances.get(id);
+        List<ServerPlayer> players = server.getPlayerList().getPlayers();
+        if (config == null || players.isEmpty()) return;
+        String values = syncValues(id, config);
+        if (values == null) return;
+        for (ServerPlayer player : players) sendSync(id, config, values, player);
+    }
+
     public static void sync(String id, ServerPlayer player) {
         MidnightConfig config = MidnightConfig.configInstances.get(id);
         if (config == null) return;
-        String values = snapshot(config).toString();
-        if (values.equals("{}")) return;
-        if (values.length() > MAX_LENGTH) {
-            System.getLogger(ConfigSync.class.getName()).log(System.Logger.Level.ERROR, id + " config exceeds sync packet limit");
-            return;
-        }
+        String values = syncValues(id, config);
+        if (values != null) sendSync(id, config, values, player);
+    }
+
+    private static void sendSync(String id, MidnightConfig config, String values, ServerPlayer player) {
         Set<String> editable = new HashSet<>();
-        fields(config.configClass).stream().filter(field -> canEdit(player, field))
-                .forEach(field -> editable.add(field.getName()));
+        for (Field field : fields(config.configClass)) {
+            if (canEdit(player, field)) editable.add(field.getName());
+        }
         RosettaNetwork.sendToPlayer(new Sync(id, values, editable), player);
     }
 

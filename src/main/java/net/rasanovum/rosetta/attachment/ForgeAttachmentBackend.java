@@ -73,9 +73,16 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
     }
 
     private Store store(O owner) { return STORES.computeIfAbsent(owner, ignored -> new Store()); }
-    public Optional<T> find(O owner) { return store(owner).find(definition); }
+    public Optional<T> find(O owner) {
+        Store store = STORES.get(owner);
+        return store == null ? Optional.empty() : store.find(definition);
+    }
     public void set(O owner, T value) { store(owner).set(definition, value); dirty(owner); }
-    public void remove(O owner) { store(owner).remove(definition); dirty(owner); }
+    public void remove(O owner) {
+        Store store = STORES.get(owner);
+        if (store != null) store.remove(definition);
+        dirty(owner);
+    }
     public void markDirty(O owner) { dirty(owner); }
 
     private void dirty(O owner) {
@@ -85,15 +92,22 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
 
     @SubscribeEvent
     public static void loadChunk(ChunkDataEvent.Load event) {
-        Store store = STORES.computeIfAbsent(event.getChunk(), ignored -> new Store());
-        if (event.getData().contains(Rosetta.MOD_ID + ":attachments", CompoundTag.TAG_COMPOUND))
-            store.deserialize(event.getData().getCompound(Rosetta.MOD_ID + ":attachments"));
+        if (event.getData().contains(Rosetta.MOD_ID + ":attachments", CompoundTag.TAG_COMPOUND)) {
+            CompoundTag tag = event.getData().getCompound(Rosetta.MOD_ID + ":attachments");
+            Store store = STORES.get(event.getChunk());
+            if (store != null) store.deserialize(tag);
+            else if (!tag.isEmpty()) STORES.computeIfAbsent(event.getChunk(), ignored -> new Store()).deserialize(tag);
+        }
     }
 
     @SubscribeEvent
     public static void saveChunk(ChunkDataEvent.Save event) {
         Store store = STORES.get(event.getChunk());
-        if (store != null) event.getData().put(Rosetta.MOD_ID + ":attachments", store.serialize());
+        if (store != null) {
+            CompoundTag tag = store.serialize();
+            if (tag.isEmpty()) event.getData().remove(Rosetta.MOD_ID + ":attachments");
+            else event.getData().put(Rosetta.MOD_ID + ":attachments", tag);
+        }
     }
 
     @SubscribeEvent
@@ -112,26 +126,46 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
     private record Definition<T>(String id, Supplier<T> factory, Codec<T> codec, boolean copyOnRespawn) {}
 
     static final class Store {
-        private final Map<Definition<?>, Object> values = new IdentityHashMap<>();
-        private CompoundTag unread = new CompoundTag();
+        private Map<Definition<?>, Object> values;
+        private CompoundTag unread;
 
         synchronized <T> Optional<T> find(Definition<T> definition) {
-            Object value = values.get(definition);
+            Object value = values == null ? null : values.get(definition);
             if (value != null) return Optional.of((T) value);
-            if (!unread.contains(definition.id())) return Optional.empty();
+            if (unread == null || !unread.contains(definition.id())) return Optional.empty();
             Optional<T> decoded = definition.codec().parse(NbtOps.INSTANCE, unread.get(definition.id()))
                     .resultOrPartial(Rosetta.LOGGER::error);
-            decoded.ifPresent(result -> values.put(definition, result));
+            decoded.ifPresent(result -> set(definition, result));
             return decoded;
         }
 
-        synchronized <T> void set(Definition<T> definition, T value) { values.put(definition, value); }
-        synchronized void remove(Definition<?> definition) { values.remove(definition); unread.remove(definition.id()); }
-        synchronized void deserialize(CompoundTag tag) { unread = tag.copy(); }
+        synchronized <T> void set(Definition<T> definition, T value) {
+            if (values == null) values = new IdentityHashMap<>();
+            values.put(definition, value);
+        }
+
+        synchronized void remove(Definition<?> definition) {
+            if (values != null) {
+                values.remove(definition);
+                if (values.isEmpty()) values = null;
+            }
+            if (unread != null) {
+                unread.remove(definition.id());
+                if (unread.isEmpty()) unread = null;
+            }
+        }
+
+        synchronized void deserialize(CompoundTag tag) { unread = tag.isEmpty() ? null : tag.copy(); }
 
         synchronized CompoundTag serialize() {
-            CompoundTag result = unread.copy();
-            values.forEach((rawDefinition, value) -> encode(result, rawDefinition, value));
+            CompoundTag result = new CompoundTag();
+            if (values != null) values.forEach((rawDefinition, value) -> encode(result, rawDefinition, value));
+            // Keep unknown data and the last saved value when a codec cannot encode its replacement.
+            if (unread != null) {
+                for (String id : unread.getAllKeys()) {
+                    if (!result.contains(id)) result.put(id, unread.get(id).copy());
+                }
+            }
             return result;
         }
 
@@ -148,7 +182,7 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
         }
 
         private <T> void copyValue(Store source, Definition<T> definition) {
-            source.find(definition).ifPresent(value -> values.put(definition, value));
+            source.find(definition).ifPresent(value -> set(definition, value));
         }
     }
 
