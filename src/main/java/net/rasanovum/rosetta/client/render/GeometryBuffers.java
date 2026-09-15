@@ -60,7 +60,20 @@ public final class GeometryBuffers implements AutoCloseable {
         /*if (activeType == null) return;
         buffer.upload();
         var info = buffer.getExecuteInfo(draw);
+        //? if >=26.3 {
+        if (info != null) {
+            var target = net.minecraft.client.Minecraft.getInstance().gameRenderer.mainRenderTarget();
+            var prepared = activeType.prepare();
+            var encoder = RenderSystem.getDevice().createCommandEncoder();
+            try (var pass = GpuCompat.renderPass(encoder, () -> label,
+                    target.getColorTextureView(), target.getDepthTextureView())) {
+                prepared.drawFromBuffer(info, pass);
+            }
+            encoder.submit();
+        }
+        //?} else {
         if (info != null) activeType.prepare().drawFromBuffer(info);
+        //?}
         buffer.endDraw();
         activeType = null;
         draw = null;

@@ -16,12 +16,38 @@ import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.core.BlockPos;
 
+import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.biome.BiomeSource;
+import net.minecraft.world.level.levelgen.RandomState;
 import java.util.List;
 import java.util.Optional;
 
 /** Biome sampling helpers. */
 public final class BiomeCompat {
     private BiomeCompat() {}
+
+    public static Climate.Sampler climateSampler(RandomState state) {
+        //? if >=26.3 {
+        /*return state.createClimateSampler(net.minecraft.world.level.levelgen.densityfunction.SamplerContext.EMPTY_UNCACHED);
+        *///?} else {
+        return state.sampler();
+        //?}
+    }
+
+    @FunctionalInterface
+    public interface Sampler {
+        Holder<Biome> getNoiseBiome(int x, int y, int z);
+    }
+
+    /** Coordinates are in quart-biome units. Reuse the resolver for repeated samples. */
+    public static Sampler resolver(BiomeSource source,
+            Climate.Sampler sampler) {
+        //? if >=26.3 {
+        /*return source.createResolver(sampler)::getNoiseBiome;
+        *///?} else {
+        return (x, y, z) -> source.getNoiseBiome(x, y, z, sampler);
+        //?}
+    }
 
     public static Registry<Biome> registry(MinecraftServer server) {
         //? if >=26.1 {

@@ -93,6 +93,20 @@ public final class ClientCompat {
         //?}
     }
 
+    /** Stable mouse indices: left 0, right 1, middle 2, then additional buttons. */
+    public static int mouseButtonIndex(int nativeButton) {
+        //? if >=26.3 {
+        /*return switch (nativeButton) {
+            case 1 -> 0;
+            case 2 -> 2;
+            case 3 -> 1;
+            default -> nativeButton - 1;
+        };
+        *///?} else {
+        return nativeButton;
+        //?}
+    }
+
     public static long windowHandle(com.mojang.blaze3d.platform.Window window) {
         //? if >=26.1 {
         /*return window.handle();

@@ -20,9 +20,9 @@ Loader IDs are `rosetta_library`, `rosetta_networking`, `rosetta_attachments`, `
 
 ## Building
 
-`./gradlew buildAllArtifacts` builds 48 distributable JARs. `buildReleaseArtifacts` builds core only. Each optional module has its own collector: `buildConfigArtifacts`, `buildNetworkingArtifacts`, `buildAttachmentsArtifacts`, `buildResourcesArtifacts`, or `buildResourcesSyncArtifacts`.
+`./gradlew buildAllArtifacts` builds all distributable JARs. `buildReleaseArtifacts` builds core only. Each optional module has its own collector: `buildConfigArtifacts`, `buildNetworkingArtifacts`, `buildAttachmentsArtifacts`, `buildResourcesArtifacts`, or `buildResourcesSyncArtifacts`.
 
-`./gradlew publishMavenArtifacts` writes all 48 publications, POMs, and source JARs to `build/maven-repository`. This is local generation, not remote publication. Optional release JARs are under `build/release-<module>`.
+`./gradlew publishMavenArtifacts` writes all publications, POMs, and source JARs to `build/maven-repository`. This is local generation, not remote publication. Optional release JARs are under `build/release-<module>`.
 
 ## Build conventions
 

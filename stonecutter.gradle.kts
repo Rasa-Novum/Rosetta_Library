@@ -4,6 +4,7 @@ import org.gradle.api.tasks.Sync
 
 plugins {
     id("dev.kikugie.stonecutter")
+    id("net.rasanovum.rosetta.stonecutter")
     id("fabric-loom") version "1.17.20" apply false
     id("net.neoforged.moddev") version "2.0.147" apply false
     id("net.neoforged.moddev.legacyforge") version "2.0.147" apply false
@@ -12,6 +13,7 @@ plugins {
 stonecutter.active("1.21.1-fabric")
 
 val releaseTargets = listOf(
+    "26.3-fabric",
     "1.20.1-fabric",
     "1.20.1-forge",
     "1.21.1-fabric",
@@ -62,27 +64,7 @@ tasks.register("publishMavenArtifacts") {
     dependsOn(releaseTargets.map { ":$it:publishRosettaPublicationToLocalRepository" })
 }
 
-stonecutter {
-    parameters {
-        val loader = current.project.substringAfterLast('-')
-        constants.match(loader, "fabric", "forge", "neoforge")
-
-        val legacyNames = !eval(current.version, ">=26.1")
-        replacements.string {
-            direction = legacyNames
-            replace("net.minecraft.resources.Identifier", "net.minecraft.resources.ResourceLocation")
-        }
-        replacements.string {
-            direction = legacyNames
-            replace("Identifier", "ResourceLocation")
-        }
-        replacements.regex {
-            direction = !legacyNames
-            replace("\\bGuiGraphics\\b", "GuiGraphicsExtractor")
-            reverse("\\bGuiGraphicsExtractor\\b", "GuiGraphics")
-        }
-    }
-}
+rosettaStonecutter { profiles.set(setOf("common", "rendering")) }
 
 tasks.register<Sync>("buildConfigArtifacts") {
     group = "build"

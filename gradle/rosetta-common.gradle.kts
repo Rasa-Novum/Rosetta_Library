@@ -39,6 +39,11 @@ if (loader != "fabric" && module in setOf("core", "config")) {
     tasks.named<Jar>("jar") { exclude("net/rasanovum/rosetta/loaders/fabric/mixin/**") }
 }
 tasks.named<ProcessResources>("processResources") {
+    if (project.name != "26.3-fabric") {
+        filesMatching("rosetta.mixins.json") {
+            filter { line: String -> line.takeUnless { it.contains("PictureInPictureRendererAccessor") } }
+        }
+    }
     val props = mutableMapOf<String, Any>(
         "version" to project.version,
         "module_version" to prop("module_version"),

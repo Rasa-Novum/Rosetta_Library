@@ -29,6 +29,7 @@ Config also requires MidnightLib. See [the module migration guide](docs/MODULES.
 
 | MC Version | Fabric Version | Forge Version | NeoForge Version | Quilt Version |
 |:----------:|:--------------:|:-------------:|:----------------:|:-------------:|
+|    26.3    |       ✅        |       ❌       |        ❌         |       ❌       |
 |    26.2    |       ✅        |       ❌       |        ✅         |       ❌       |
 |   26.1.x   |       ✅        |       ❌       |        ✅         |       ❌       |
 |   1.21.1   |       ✅        |       ❌       |        ✅         |       ❌       |
@@ -42,7 +43,7 @@ Build all six artifacts for every supported target:
 .\gradlew.bat buildAllArtifacts
 ```
 
-Core jars are written to `build/release`; optional modules use `build/release-<module>`. Use `buildReleaseArtifacts` for core only. The `26.1` jars support Minecraft 26.1, 26.1.1, and 26.1.2 (`>=26.1 <26.2`); 26.2 uses separate jars. Rosetta Config uses the same version ranges and can be built with `buildConfigArtifacts`.
+Core jars are written to `build/release`; optional modules use `build/release-<module>`. Use `buildReleaseArtifacts` for core only. The `26.1` jars support Minecraft 26.1, 26.1.1, and 26.1.2 (`>=26.1 <26.2`); 26.2 and 26.3 use separate jars (26.3 is Fabric only). Rosetta Config uses the same version ranges and can be built with `buildConfigArtifacts`.
 
 Build one target:
 
