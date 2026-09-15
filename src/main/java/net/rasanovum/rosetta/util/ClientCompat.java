@@ -3,6 +3,8 @@ package net.rasanovum.rosetta.util;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Camera;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -12,6 +14,38 @@ import net.minecraft.world.entity.player.Player;
 /** Client-side helpers. */
 public final class ClientCompat {
     private ClientCompat() {}
+
+    public static Screen screen(Minecraft minecraft) {
+        //? if >=26.2 {
+        /*return minecraft.gui.screen();
+        *///?} else {
+        return minecraft.screen;
+        //?}
+    }
+
+    public static void setScreen(Minecraft minecraft, Screen screen) {
+        //? if >=26.2 {
+        /*minecraft.gui.setScreen(screen);
+        *///?} else {
+        minecraft.setScreen(screen);
+        //?}
+    }
+
+    public static Camera mainCamera(Minecraft minecraft) {
+        //? if >=26.2 {
+        /*return minecraft.gameRenderer.mainCamera();
+        *///?} else {
+        return minecraft.gameRenderer.getMainCamera();
+        //?}
+    }
+
+    public static boolean isHudHidden(Minecraft minecraft) {
+        //? if >=26.2 {
+        /*return minecraft.gameRenderer.gameRenderState().guiRenderState.isHudHidden;
+        *///?} else {
+        return minecraft.options.hideGui;
+        //?}
+    }
 
     public static ResourceLocation getPlayerSkin(Minecraft minecraft, Player player) {
         //? if <1.21 {

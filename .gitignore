@@ -12,3 +12,4 @@ out/
 !/tests/lightweight/
 /tests/**/__pycache__/
 /tests
+/gradle/tests

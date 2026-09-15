@@ -1,6 +1,8 @@
 package net.rasanovum.rosetta.event;
 
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.systems.RenderSystem;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -22,10 +24,21 @@ public final class ClientHooks {
         initialized = true;
         CALLBACKS.forEach(Callbacks::onClientInitialize);
     }
-    public static void joined(Player player) { CALLBACKS.forEach(c -> c.onJoin(player)); }
-    public static void disconnected() { CALLBACKS.forEach(Callbacks::onDisconnect); }
-    public static void endClientTick() { CALLBACKS.forEach(Callbacks::onEndClientTick); }
-    public static void clientStopping() { CALLBACKS.forEach(Callbacks::onClientStopping); }
+    public static void joined(Player player) {
+        CALLBACKS.forEach(c -> c.onJoin(player));
+    }
+
+    public static void disconnected() {
+        Minecraft.getInstance().execute(() -> CALLBACKS.forEach(Callbacks::onDisconnect));
+    }
+    public static void endClientTick() {
+        CALLBACKS.forEach(Callbacks::onEndClientTick);
+    }
+
+    public static void clientStopping() {
+        RenderSystem.assertOnRenderThread();
+        CALLBACKS.forEach(Callbacks::onClientStopping);
+    }
 
     public interface Callbacks {
         default void onClientInitialize() {}

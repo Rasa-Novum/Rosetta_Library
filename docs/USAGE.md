@@ -191,3 +191,14 @@ Rosetta contains a migration seam that runs before `getOrCreate` installs a defa
 Rosetta also contains compatibility facades for NBT access, registries, worlds, biomes, attributes, entities, GUI rendering, client utilities, gamerules, and loader/platform queries. These helpers centralize ordinary API replacements, while Stonecutter remains appropriate for method signatures, overrides, mixin targets, and other source-shape changes that cannot be hidden behind a method call.
 
 Consult the classes under `net.rasanovum.rosetta.nbt`, `net.rasanovum.rosetta.util`, `net.rasanovum.rosetta.client`, and `net.rasanovum.rosetta.loaders` for the currently available facade methods.
+
+
+## Client lifecycle and rendering compatibility
+
+`ClientHooks.onDisconnect` callbacks run on the Minecraft client thread, even when a loader reports the disconnect from a networking thread. `onClientStopping` runs synchronously on the render thread before graphics teardown; do not defer GPU cleanup from that callback. Callbacks that release resources should tolerate a disconnect followed by shutdown.
+
+`ClientCompat.screen`, `setScreen`, `mainCamera`, and `isHudHidden` hide the 26.2 client GUI and camera API changes. These helpers do not schedule calls: screen changes still belong on the client thread.
+
+`GeometryBuffers` provides `getBuffer`, `endBatch`, `endFrame`, and `close` for immediate world overlays across all supported versions. Keep an adapter in the consumer, flush each completed render type, call `endFrame` after the overlay pass, and call `close` on disconnect and shutdown. Operations require the render thread. Storage is allocated lazily and can be recreated after closing on reconnect. Before 26.2 it borrows vanilla's buffer source; on 26.2 it owns staged GPU storage. Do not close or flush it from a networking callback outside Rosetta's lifecycle dispatch.
+
+For 26.1 and newer, `GpuCompat` adapts buffer writes, render passes that preserve existing attachments, vertex slot zero, non-instanced indexed draws, uniform-buffer/sampler bindings, and quad pipeline layout. The consumer owns textures, buffers, pipeline policy, and render-pass lifetime. A `writeBuffer` callback must not retain its mapped byte buffer. These helpers neither submit the frame nor free caller-owned resources.
