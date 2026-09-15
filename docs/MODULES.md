@@ -23,3 +23,11 @@ Loader IDs are `rosetta_library`, `rosetta_networking`, `rosetta_attachments`, `
 `./gradlew buildAllArtifacts` builds 48 distributable JARs. `buildReleaseArtifacts` builds core only. Each optional module has its own collector: `buildConfigArtifacts`, `buildNetworkingArtifacts`, `buildAttachmentsArtifacts`, `buildResourcesArtifacts`, or `buildResourcesSyncArtifacts`.
 
 `./gradlew publishMavenArtifacts` writes all 48 publications, POMs, and source JARs to `build/maven-repository`. This is local generation, not remote publication. Optional release JARs are under `build/release-<module>`.
+
+## Build conventions
+
+`versions/<target>/gradle.properties` is the shared source for Minecraft, loader, API, and Java versions across all six artifacts. Module-level `gradle.properties` files contain artifact metadata. Only genuine target overrides remain under a module: Config's target files specify MidnightLib versions. Shared dependency defaults, such as MixinExtras, live in the root properties.
+
+`gradle/rosetta-common.gradle.kts` loads root defaults, shared target properties, module metadata, and optional module target overrides in that order. It configures Java compilation, archive classifiers, and loader resource expansion. `gradle/rosetta-publishing.gradle.kts` handles all Maven publications while preserving their existing task names. The target matrix is declared once in `settings.gradle.kts`.
+
+The small per-loader build scripts retain plugin setup, loader registration, dependencies, and artifact-specific mixin or resource requirements. Update shared settings in the convention scripts rather than copying them into each artifact.

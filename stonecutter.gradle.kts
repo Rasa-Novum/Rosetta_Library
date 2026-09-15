@@ -22,16 +22,6 @@ val releaseTargets = listOf(
     "26.1-neoforge",
 )
 
-val mavenTargets = listOf(
-    "1.20.1-fabric",
-    "1.20.1-forge",
-    "1.21.1-fabric",
-    "1.21.1-neoforge",
-    "26.2-fabric",
-    "26.2-neoforge",
-    "26.1-fabric",
-    "26.1-neoforge",
-)
 
 val cleanReleaseArtifacts = tasks.register<Delete>("cleanReleaseArtifacts") {
     delete(layout.buildDirectory.dir("release"))
@@ -69,7 +59,7 @@ tasks.register("buildReleaseArtifacts") {
 tasks.register("publishMavenArtifacts") {
     group = "publishing"
     description = "Publishes the supported Rosetta mod jars into build/maven-repository."
-    dependsOn(mavenTargets.map { ":$it:publishRosettaPublicationToLocalRepository" })
+    dependsOn(releaseTargets.map { ":$it:publishRosettaPublicationToLocalRepository" })
 }
 
 stonecutter {
