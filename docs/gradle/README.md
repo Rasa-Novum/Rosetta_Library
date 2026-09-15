@@ -1,11 +1,12 @@
 # Gradle plugins
 
-Rosetta provides three build-time plugins:
+Rosetta provides four build-time plugins:
 
 | Plugin | Guide |
 | --- | --- |
 | `net.rasanovum.rosetta.stonecutter` | [Shared source replacements](stonecutter.md) |
 | `net.rasanovum.rosetta.shaders` | [Shader processing](shaders.md) |
+| `net.rasanovum.rosetta.local-dependencies` | [Local development jars](local-dependencies.md) |
 | `net.rasanovum.rosetta.data` | [Datapack JSON](data.md) |
 
 ## Setup

@@ -20,6 +20,10 @@ gradlePlugin {
             id = "net.rasanovum.rosetta.stonecutter"
             implementationClass = "net.rasanovum.rosetta.gradle.RosettaStonecutterPlugin"
         }
+        create("localDependencies") {
+            id = "net.rasanovum.rosetta.local-dependencies"
+            implementationClass = "net.rasanovum.rosetta.gradle.RosettaLocalDependenciesPlugin"
+        }
         create("data") {
             id = "net.rasanovum.rosetta.data"
             implementationClass = "net.rasanovum.rosetta.gradle.RosettaDataPlugin"
