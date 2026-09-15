@@ -26,7 +26,7 @@ Profiles are read after controller evaluation and installed once per tree throug
 Apply `net.rasanovum.rosetta.shaders` to target projects after resolving their properties. The plugin is available to Via Romana's subprojects through its root plugins block.
 
 ```kotlin
-extra["rosetta.shaders.manifest"] = "map-foundation/shaders.json"
+extra["rosetta.shaders.manifest"] = "artifacts/map-foundation/shaders.json"
 extra["rosetta.shaders.minecraft"] = prop("deps.minecraft")
 apply(plugin = "net.rasanovum.rosetta.shaders")
 ```
@@ -51,3 +51,26 @@ For custom vertex/fragment pairs, set vertexShader on the fragment entry to the 
 The generated resources task tracks its inputs, writes under build/generated/rosetta-shaders, and replaces selected original resources even when Stonecutter has relocated them. It does not edit checked-in sources. 26.3 processing adds explicit locations and the separate shader objects extension, expands relative moj_import includes, converts namespaced imports to include, and optionally updates the known vanilla DynamicTransforms block layout. Missing/duplicate locations, mismatched stages, cyclic includes, and escaping includes fail the build. Earlier targets retain their GLSL content. Line endings are normalized to the host platform.
 
 Legacy shader entries can set legacyOnly to true (pre-26). Set rosetta.shaders.legacyNamespace on the target to namespace their quoted imports where required by Forge. Modern pipeline resources remain unaffected by that legacy setting.
+
+## Datapack JSON
+
+Apply `net.rasanovum.rosetta.data` to each target project. Define recipes, advancements, tags, and pack metadata once under `src/main/rosetta-data`; `generateRosettaData` produces the target resources during `processResources`.
+
+```kotlin
+plugins { id("net.rasanovum.rosetta.data") }
+rosettaData {
+    minecraftVersion.set("26.3")
+    loader.set("fabric")
+}
+```
+
+For applied scripts, put the plugin in the root plugins block with `apply false`, then use:
+
+```kotlin
+extra["rosetta.data.minecraft"] = project.property("deps.minecraft").toString()
+apply(plugin = "net.rasanovum.rosetta.data")
+```
+
+The default source directory is relative to the consumer root, for shared Stonecutter sources. Override it through `rosettaData.sourceDirectory` or the root-relative `rosetta.data.source` bootstrap property. Minecraft defaults to `deps.minecraft`; loader defaults to the project name suffix. Explicit bootstrap properties are also available as `rosetta.data.minecraft` and `rosetta.data.loader`.
+
+See [the data authoring guide](DATA.md) for the supported vocabulary, target overrides, and format references. This is build-time generation; no runtime Rosetta artifact is required.

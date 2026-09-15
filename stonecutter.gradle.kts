@@ -72,7 +72,7 @@ tasks.register<Sync>("buildConfigArtifacts") {
     dependsOn(releaseTargets.map { ":config:$it:build" })
     into(layout.buildDirectory.dir("release-config"))
     releaseTargets.forEach { target ->
-        from(layout.projectDirectory.dir("config/versions/$target/build/libs")) {
+        from(layout.projectDirectory.dir("artifacts/config/versions/$target/build/libs")) {
             include("Rosetta-Config-${providers.gradleProperty("config_version").get()}-$target.jar")
         }
     }
@@ -86,7 +86,7 @@ optionalModules.forEach { module ->
         dependsOn(releaseTargets.map { ":$module:$it:build" })
         into(layout.buildDirectory.dir("release-$module"))
         releaseTargets.forEach { target ->
-            from(layout.projectDirectory.dir("$module/versions/$target/build/libs")) {
+            from(layout.projectDirectory.dir("artifacts/$module/versions/$target/build/libs")) {
                 include("Rosetta-$display-${providers.gradleProperty("module_version").get()}-$target.jar")
             }
         }

@@ -126,3 +126,8 @@ Creative-tab declarations are attached by the same single `register(Registration
 ## Configuration Artifact
 
 [Rosetta Config](docs/CONFIGURATION.md) provides server-owned MidnightLib settings, synchronization and disabled GUI indicators.
+## Repository layout
+
+The primary Rosetta mod lives in `src/`. Optional modules live under `artifacts/`: `config`, `networking`, `attachments`, `resources`, and `resources-sync`. Build tooling lives separately in `rosetta-gradle/`.
+
+Directory placement does not change Gradle project names (for example, `:networking:26.3-fabric:build`) or Maven coordinates. `buildAllArtifacts` continues to collect release jars under `build/release*`.

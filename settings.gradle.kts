@@ -18,6 +18,9 @@ plugins {
 rootProject.name = "Rosetta"
 
 include("config", "networking", "attachments", "resources", "resources-sync")
+for (module in listOf("config", "networking", "attachments", "resources", "resources-sync")) {
+    project(":$module").projectDir = file("artifacts/$module")
+}
 
 stonecutter {
     for (module in listOf(rootProject, project(":config"), project(":networking"),
