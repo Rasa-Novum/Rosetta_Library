@@ -3,10 +3,10 @@
 Server-synchronized settings for MidnightLib. Handles sync between server and clients, restores previous local values upon leaving a server.
 
 ```text
-net.rasanovum.rosetta:rosetta-config-<minecraft>-<loader>:0.1.0
+net.rasanovum.rosetta:rosetta-config-<minecraft>-<loader>:0.2.0
 ```
 
-Requires `Rosetta` and `MidnightLib`
+Requires core, networking, and MidnightLib. See [setup](../setup.md).
 
 ## Usage
 
@@ -25,13 +25,13 @@ public class CommonConfig extends MidnightConfig {
 MidnightConfig.init(MOD_ID, CommonConfig.class);
 ```
 ### `permissionLevel` (default: 2)
-Use `@ServerSetting(permissionLevel = [0-4])` to require a specific level, setting it to `0` will allow any player to edit it.
+Set `permissionLevel` to an integer from 0 to 4. For example, `@ServerSetting(permissionLevel = 4)` requires level 4. A value of 0 allows any player to edit the setting.
 
 ### `requireCheats` (default: false)
 The singleplayer owner can edit without cheats unless `requireCheats = true`. For example, `@ServerSetting(requireCheats = true)` requires level 2 even in singleplayer; `@ServerSetting(permissionLevel = 4, requireCheats = true)` requires level 4.
 
 ### `disabledDescription` (default: "")
-To append a message to disabled entries, use `@ServerSetting(disabledDescription = "\n Example string.")`. This allows for a more obvious explanation to clients that it's managed by the server.
+To append a message to disabled entries, use `@ServerSetting(disabledDescription = "\n Example string.")`. The message explains why the setting cannot be edited.
 
 ## Refresh hooks
 
@@ -49,12 +49,3 @@ Calling this on server also triggers the server refresh hook and broadcasts the 
 ```java
 eu.midnightdust.lib.config.MidnightConfig.configInstances.get(MOD_ID).loadValuesFromJson();
 ```
-
-
-## Build
-
-```powershell
-.\gradlew.bat buildConfigArtifacts
-```
-
-JARs are written to `build/release-config`.

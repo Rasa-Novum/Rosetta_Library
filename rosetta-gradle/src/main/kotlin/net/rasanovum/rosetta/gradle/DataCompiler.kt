@@ -2,7 +2,7 @@ package net.rasanovum.rosetta.gradle
 
 import com.google.gson.*
 
-/** Converts a deliberately bounded, modern JSON vocabulary into each supported pack format. */
+/** Converts supported vanilla 1.21.1 JSON into each supported pack format. */
 internal class DataCompiler(private val version: String, private val loader: String) {
     private val legacy = version == "1.20.1"
     private val modern = version.startsWith("26.")
@@ -67,7 +67,12 @@ internal class DataCompiler(private val version: String, private val loader: Str
         val result = native ?: json
         require(!result.has("\$rosetta")) { "Nested override metadata is not supported" }
         val segments = path.split('/').toMutableList()
-        if (segments[2] == "tags") require(segments.size >= 5) { "Tags require a registry and resource path" }
+        if (segments[2] == "tags") {
+            require(segments.size >= 5) { "Tags require a registry and resource path" }
+            require(segments[3] !in setOf("blocks", "items", "fluids", "entity_types", "game_events", "functions")) {
+                "Author tag paths using vanilla 1.21.1 singular registry folders"
+            }
+        }
         if (native == null) when (segments[2]) {
             "recipe" -> recipe(result)
             "advancement" -> advancement(result)
@@ -97,7 +102,7 @@ internal class DataCompiler(private val version: String, private val loader: Str
     private fun recipe(json: JsonObject) {
         val type = string(json, "type").removePrefix("minecraft:")
         val cooking = type in setOf("smelting", "blasting", "smoking", "campfire_cooking")
-        require(cooking || type in setOf("crafting_shaped", "crafting_shapeless", "stonecutting")) { "Unsupported recipe type '$type'$hint" }
+        require(cooking || type in setOf("crafting_shaped", "crafting_shapeless", "stonecutting")) { "Rosetta has no adapter for recipe type '$type'$hint" }
         val common = setOf("type", "group", "category", "result")
         fields(json, common + when (type) {
             "crafting_shaped" -> setOf("pattern", "key", "show_notification")
@@ -144,16 +149,22 @@ internal class DataCompiler(private val version: String, private val loader: Str
     private fun ingredient(value: JsonElement): JsonElement {
         if (value.isJsonArray) {
             require(value.asJsonArray.size() > 0) { "Ingredient alternatives cannot be empty" }
-            require(value.asJsonArray.all { it.isJsonPrimitive && it.asJsonPrimitive.isString && !it.asString.startsWith('#') }) {
-                "Ingredient alternatives must contain only item IDs$hint"
+            require(value.asJsonArray.all { it.isJsonObject }) { "1.21.1 ingredient alternatives must be item/tag objects" }
+            val converted = JsonArray().also { out -> value.asJsonArray.forEach { out.add(ingredient(it)) } }
+            require(!modern || converted.none { it.asString.startsWith('#') }) {
+                "Minecraft $version cannot represent tag ingredients in an alternatives list$hint"
             }
-            return JsonArray().also { out -> value.asJsonArray.forEach { out.add(ingredient(it)) } }
+            return converted
         }
-        require(value.isJsonPrimitive && value.asJsonPrimitive.isString) { "Canonical ingredients must be item IDs or #tag strings$hint" }
-        val text = value.asString
-        id(text.removePrefix("#"))
-        require(text != "minecraft:air") { "Air is not a valid ingredient" }
-        return if (modern) value.deepCopy() else JsonObject().also { it.addProperty(if (text.startsWith('#')) "tag" else "item", text.removePrefix("#")) }
+        require(value.isJsonObject) { "Author ingredients as vanilla 1.21.1 item/tag objects, not strings" }
+        val obj = value.asJsonObject
+        fields(obj, setOf("item", "tag"))
+        require(obj.has("item") != obj.has("tag")) { "Ingredient requires exactly one of item or tag" }
+        val key = if (obj.has("item")) "item" else "tag"
+        val resource = string(obj, key)
+        id(resource)
+        require(key != "item" || resource != "minecraft:air") { "Air is not a valid ingredient" }
+        return if (modern) JsonPrimitive(if (key == "tag") "#$resource" else resource) else obj.deepCopy()
     }
 
     private fun advancement(json: JsonObject) {
@@ -167,7 +178,7 @@ internal class DataCompiler(private val version: String, private val loader: Str
             id(string(criterion, "trigger"))
             val trigger = criterion["trigger"].asString
             require(trigger in setOf("minecraft:impossible", "minecraft:tick", "minecraft:inventory_changed")) {
-                "Unsupported advancement trigger$hint"
+                "Rosetta has no adapter for advancement trigger '$trigger'$hint"
             }
             criterion["conditions"]?.asJsonObject?.let { conditions ->
                 fields(conditions, if (trigger == "minecraft:inventory_changed") setOf("items", "slots") else emptySet())
@@ -218,8 +229,13 @@ internal class DataCompiler(private val version: String, private val loader: Str
             display["background"]?.let {
                 val background = it.asString
                 id(background)
-                require(!background.substringAfter(':').startsWith("textures/") && !background.endsWith(".png")) { "Use the modern background ID without textures/ or .png" }
-                if (!modern) display.addProperty("background", background.substringBefore(':') + ":textures/" + background.substringAfter(':') + ".png")
+                if (modern) {
+                    val path = background.substringAfter(':')
+                    require(path.startsWith("textures/") && path.endsWith(".png")) {
+                        "Minecraft $version requires a PNG texture background under textures/$hint"
+                    }
+                    display.addProperty("background", background.substringBefore(':') + ":" + path.removePrefix("textures/").removeSuffix(".png"))
+                }
             }
         }
         json["rewards"]?.asJsonObject?.let { rewards ->
@@ -267,7 +283,7 @@ internal class DataCompiler(private val version: String, private val loader: Str
     }
 
     private fun fields(json: JsonObject, allowed: Set<String>) {
-        require(json.keySet().all { it in allowed }) { "Unsupported fields ${json.keySet() - allowed}$hint" }
+        require(json.keySet().all { it in allowed }) { "Fields not implemented by Rosetta: ${json.keySet() - allowed}$hint" }
     }
     private fun string(json: JsonObject, name: String): String {
         val value = json[name] ?: error("Missing $name")
