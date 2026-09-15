@@ -1,0 +1,24 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="MIT"
+
+[[mods]]
+modId="rosetta_attachments"
+version="${version}"
+displayName="Rosetta Attachments"
+authors="Rasa Novum, xameryn"
+description="Attachments compatibility module."
+
+[[dependencies.rosetta_attachments]]
+modId="minecraft"
+mandatory=true
+versionRange="${minecraft_version_range}"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.rosetta_attachments]]
+modId="rosetta_library"
+mandatory=true
+versionRange="[${rosetta_version},)"
+ordering="AFTER"
+side="BOTH"

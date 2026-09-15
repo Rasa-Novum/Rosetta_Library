@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "rosetta_attachments",
+  "version": "${version}",
+  "name": "Rosetta Attachments",
+  "description": "Attachments compatibility module.",
+  "authors": [
+    "Rasa Novum",
+    "xameryn"
+  ],
+  "license": "MIT",
+  "environment": "*",
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "${minecraft_version}",
+    "rosetta_library": ">=${rosetta_version}"
+  },
+  "entrypoints": {
+    "main": [
+      "net.rasanovum.rosetta.attachment.loaders.AttachmentsFabric"
+    ]
+  }
+}

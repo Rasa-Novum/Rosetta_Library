@@ -1,0 +1,28 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="MIT"
+
+[[mods]]
+modId="rosetta_resources"
+version="${version}"
+displayName="Rosetta Resources"
+authors="Ramixin, xameryn"
+description="Resources compatibility module."
+${icon_property}="logo.png"
+
+[[dependencies.rosetta_resources]]
+modId="minecraft"
+type="required"
+versionRange="${minecraft_version_range}"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.rosetta_resources]]
+modId="rosetta_library"
+type="required"
+versionRange="[${rosetta_version},)"
+ordering="AFTER"
+side="BOTH"
+
+[[mixins]]
+config="runeweaver.mixins.json"

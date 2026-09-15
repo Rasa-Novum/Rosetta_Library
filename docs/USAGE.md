@@ -1,5 +1,7 @@
 # Using Rosetta Library
 
+For 0.2.0+, declare the optional artifacts used by these examples; see [module dependencies](MODULES.md).
+
 ## Networking
 
 Rosetta packets use the same declaration on every supported target. Rosetta translates that declaration to legacy Fabric networking, modern Fabric payloads, Forge `SimpleChannel`, or NeoForge payload registration.

@@ -105,3 +105,27 @@ tasks.register<Sync>("buildConfigArtifacts") {
         }
     }
 }
+
+val optionalModules = listOf("networking", "attachments", "resources", "resources-sync")
+optionalModules.forEach { module ->
+    val display = module.split("-").joinToString("-") { it.replaceFirstChar(Char::uppercase) }
+    tasks.register<Sync>("build${display.replace("-", "")}Artifacts") {
+        group = "build"
+        dependsOn(releaseTargets.map { ":$module:$it:build" })
+        into(layout.buildDirectory.dir("release-$module"))
+        releaseTargets.forEach { target ->
+            from(layout.projectDirectory.dir("$module/versions/$target/build/libs")) {
+                include("Rosetta-$display-${providers.gradleProperty("module_version").get()}-$target.jar")
+            }
+        }
+    }
+}
+tasks.register("buildAllArtifacts") {
+    group = "build"
+    dependsOn("buildReleaseArtifacts", "buildConfigArtifacts")
+    dependsOn(optionalModules.map { module -> "build" + module.split("-").joinToString("") { it.replaceFirstChar(Char::uppercase) } + "Artifacts" })
+}
+tasks.named("publishMavenArtifacts") {
+    dependsOn(releaseTargets.map { ":config:$it:publishRosettaConfigPublicationToLocalRepository" })
+    dependsOn(optionalModules.flatMap { module -> releaseTargets.map { ":$module:$it:publishRosettaModulePublicationToLocalRepository" } })
+}

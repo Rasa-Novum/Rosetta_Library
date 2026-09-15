@@ -1,0 +1,24 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="MIT"
+
+[[mods]]
+modId="rosetta_networking"
+version="${version}"
+displayName="Rosetta Networking"
+authors="Rasa Novum, xameryn"
+description="Networking compatibility module."
+
+[[dependencies.rosetta_networking]]
+modId="minecraft"
+mandatory=true
+versionRange="${minecraft_version_range}"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.rosetta_networking]]
+modId="rosetta_library"
+mandatory=true
+versionRange="[${rosetta_version},)"
+ordering="AFTER"
+side="BOTH"

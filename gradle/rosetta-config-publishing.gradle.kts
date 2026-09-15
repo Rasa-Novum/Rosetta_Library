@@ -10,7 +10,7 @@ val minecraftVersion = target.substringBeforeLast('-')
 val loader = target.substringAfterLast('-')
 val isLegacyFabric = loader == "fabric" && minecraftVersion in setOf("1.20.1", "1.21.1")
 
-group = "com.rasanovum.rosetta.config"
+group = "net.rasanovum.rosetta.config"
 
 val modJar = if (isLegacyFabric) {
     tasks.named<AbstractArchiveTask>("remapJar")
@@ -35,7 +35,7 @@ extensions.configure<PublishingExtension> {
     }
     publications {
         create<MavenPublication>("rosettaConfig") {
-            groupId = "com.rasanovum.rosetta"
+            groupId = "net.rasanovum.rosetta"
             artifactId = "rosetta-config-$target"
             version = project.version.toString()
 
@@ -55,7 +55,8 @@ extensions.configure<PublishingExtension> {
                     node.appendNode("version", version)
                     node.appendNode("scope", "compile")
                 }
-                dependency("com.rasanovum.rosetta", "rosetta-$target", rootProject.property("mod_version").toString())
+                dependency("net.rasanovum.rosetta", "rosetta-$target", rootProject.property("mod_version").toString())
+                dependency("net.rasanovum.rosetta", "rosetta-networking-$target", rootProject.property("module_version").toString())
                 dependency("maven.modrinth", "midnightlib", project.property("deps.midnightlib").toString())
             }
             pom {

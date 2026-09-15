@@ -1,0 +1,38 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="MIT"
+
+[[mods]]
+modId="rosetta_resources_sync"
+version="${version}"
+displayName="Rosetta Resources Sync"
+authors="Rasa Novum, xameryn"
+description="Resources Sync compatibility module."
+
+[[dependencies.rosetta_resources_sync]]
+modId="minecraft"
+type="required"
+versionRange="${minecraft_version_range}"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.rosetta_resources_sync]]
+modId="rosetta_library"
+type="required"
+versionRange="[${rosetta_version},)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.rosetta_resources_sync]]
+modId="rosetta_networking"
+type="required"
+versionRange="[${module_version},)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.rosetta_resources_sync]]
+modId="rosetta_resources"
+type="required"
+versionRange="[${module_version},)"
+ordering="AFTER"
+side="BOTH"

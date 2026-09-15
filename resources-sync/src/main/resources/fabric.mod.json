@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "rosetta_resources_sync",
+  "version": "${version}",
+  "name": "Rosetta Resources Sync",
+  "description": "Resources Sync compatibility module.",
+  "authors": [
+    "Rasa Novum",
+    "xameryn"
+  ],
+  "license": "MIT",
+  "environment": "*",
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "${minecraft_version}",
+    "rosetta_library": ">=${rosetta_version}",
+    "rosetta_networking": ">=${module_version}",
+    "rosetta_resources": ">=${module_version}"
+  },
+  "entrypoints": {
+    "main": [
+      "net.rasanovum.runeweaver.rosetta.loaders.fabric.RuneweaverRosettaFabric"
+    ]
+  }
+}

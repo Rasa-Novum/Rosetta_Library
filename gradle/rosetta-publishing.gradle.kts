@@ -10,7 +10,7 @@ val minecraftVersion = target.substringBeforeLast('-')
 val loader = target.substringAfterLast('-')
 val isLegacyFabric = loader == "fabric" && minecraftVersion in setOf("1.20.1", "1.21.1")
 
-group = "com.rasanovum.rosetta"
+group = "net.rasanovum.rosetta"
 
 val modJar = if (isLegacyFabric) {
     tasks.named<AbstractArchiveTask>("remapJar")

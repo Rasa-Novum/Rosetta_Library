@@ -7,9 +7,8 @@ run/
 *.iml
 out/
 /libs/
-/tests/*
-!/tests/config/
-!/tests/lightweight/
-/tests/**/__pycache__/
-/tests
-/gradle/tests
+*.log
+
+test/
+tests/
+/scripts/

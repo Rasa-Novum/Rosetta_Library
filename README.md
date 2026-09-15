@@ -10,6 +10,21 @@ It provides compatibility helpers for registries, NBT, worlds, biomes, attribute
 
 Rosetta Library uses [Stonecutter](https://stonecutter.kikugie.dev/) to maintain its version-specific implementations.
 
+## Modules in 0.2.0
+
+Each artifact appends the Minecraft/loader target (for example `rosetta-networking-26.2-fabric`) and uses the Maven group `net.rasanovum.rosetta`.
+
+| Artifact | Responsibility | Rosetta dependencies |
+|---|---|---|
+| `rosetta` | Compatibility helpers and lifecycle hooks | None |
+| `rosetta-networking` | Packet registration and transport | Core |
+| `rosetta-attachments` | Persistent attached data | Core |
+| `rosetta-config` | Configuration and config screens | Core, networking |
+| `rosetta-resources` | Resource modification, formerly Runeweaver | Core |
+| `rosetta-resources-sync` | Server datapack resources sent to clients | Core, networking, resources |
+
+Config also requires MidnightLib. See [the module migration guide](docs/MODULES.md).
+
 ## Support
 
 | MC Version | Fabric Version | Forge Version | NeoForge Version | Quilt Version |
@@ -21,13 +36,13 @@ Rosetta Library uses [Stonecutter](https://stonecutter.kikugie.dev/) to maintain
 
 ## Building
 
-Build every supported target:
+Build all six artifacts for every supported target:
 
 ```powershell
-.\gradlew.bat buildReleaseArtifacts
+.\gradlew.bat buildAllArtifacts
 ```
 
-Target-specific jars are written to `build/release`. The `26.1` jars support Minecraft 26.1, 26.1.1, and 26.1.2 (`>=26.1 <26.2`); 26.2 uses separate jars. Rosetta Config uses the same version ranges and can be built with `buildConfigArtifacts`.
+Core jars are written to `build/release`; optional modules use `build/release-<module>`. Use `buildReleaseArtifacts` for core only. The `26.1` jars support Minecraft 26.1, 26.1.1, and 26.1.2 (`>=26.1 <26.2`); 26.2 uses separate jars. Rosetta Config uses the same version ranges and can be built with `buildConfigArtifacts`.
 
 Build one target:
 
@@ -43,7 +58,7 @@ See the [developer usage guide](docs/USAGE.md) for supported targets, networking
 
 ### Maven
 
-The target-specific artifacts are published from the `maven` branch:
+Remote releases use the `maven` branch. The new 0.2.0 artifacts are currently generated locally; this migration does not publish them remotely.
 
 ```kotlin
 repositories {
@@ -51,7 +66,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.rasanovum.rosetta:rosetta-1.21.1-fabric:0.1.1")
+    implementation("net.rasanovum.rosetta:rosetta-1.21.1-fabric:0.2.0")
 }
 ```
 

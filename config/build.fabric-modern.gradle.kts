@@ -60,3 +60,5 @@ dependencies {
 }
 
 apply(from = rootProject.file("gradle/rosetta-release-size.gradle.kts"))
+
+apply(from = rootProject.file("gradle/rosetta-module-dependencies.gradle.kts"))

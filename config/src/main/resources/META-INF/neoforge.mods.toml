@@ -32,3 +32,10 @@ side="BOTH"
 
 [[mixins]]
 config="rosetta-config.mixins.json"
+
+[[dependencies.rosetta_config]]
+modId="rosetta_networking"
+type="required"
+versionRange="[${rosetta_version},)"
+ordering="AFTER"
+side="BOTH"

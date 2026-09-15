@@ -13,13 +13,11 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.level.ServerPlayer;
-import net.rasanovum.rosetta.attachment.AttachmentBootstrap;
 import net.rasanovum.rosetta.event.ServerHooks;
 
 public final class RosettaFabric implements ModInitializer {
     @Override
     public void onInitialize() {
-        AttachmentBootstrap.initialize(null);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> ServerHooks.playerJoined(handler.player));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> ServerHooks.playerLeft(handler.player));
         ServerTickEvents.END_SERVER_TICK.register(server -> server.getAllLevels().forEach(ServerHooks::serverLevelTick));
