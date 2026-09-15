@@ -9,7 +9,11 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+//? if >=26.2 {
+import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
+//?} else {
 import net.neoforged.neoforge.event.level.BlockEvent;
+//?}
 import net.neoforged.neoforge.event.level.ChunkWatchEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
@@ -70,10 +74,20 @@ public final class NeoForgeEventHooks {
     }
 
     @SubscribeEvent
+    //? if >=26.2 {
+    public static void blockBreak(BreakBlockEvent event) {
+        if (event.getPlayer() instanceof ServerPlayer player &&
+                !ServerHooks.beforeBlockBreak(event.getLevel(), event.getPos(), player)) {
+            event.setCanceled(true);
+            event.setNotifyClient(true);
+        }
+    }
+    //?} else {
     public static void blockBreak(BlockEvent.BreakEvent event) {
         if (event.getPlayer() instanceof ServerPlayer player &&
                 !ServerHooks.beforeBlockBreak(event.getLevel(), event.getPos(), player)) event.setCanceled(true);
     }
+    //?}
 
     @SubscribeEvent
     public static void registerCommands(RegisterCommandsEvent event) {

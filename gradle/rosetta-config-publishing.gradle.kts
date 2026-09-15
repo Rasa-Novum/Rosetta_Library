@@ -56,8 +56,7 @@ extensions.configure<PublishingExtension> {
                     node.appendNode("scope", "compile")
                 }
                 dependency("com.rasanovum.rosetta", "rosetta-$target", rootProject.property("mod_version").toString())
-                val midnightVersion = if (minecraftVersion == "26.1") "1.9.3" else "1.9.1"
-                dependency("maven.modrinth", "midnightlib", "$midnightVersion+$target")
+                dependency("maven.modrinth", "midnightlib", project.property("deps.midnightlib").toString())
             }
             pom {
                 name = "Rosetta Config ($target)"

@@ -21,6 +21,7 @@ neoForge {
 tasks.processResources {
     val props = mapOf(
         "version" to project.version,
+        "icon_property" to (if (prop("deps.minecraft") == "26.2") "iconFile" else "logoFile"),
         "mod_description" to prop("mod_description"),
         "mod_authors" to prop("mod_authors"),
         "minecraft_version_range" to prop("deps.minecraft_range"),

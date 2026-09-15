@@ -4,9 +4,9 @@ import org.gradle.api.tasks.Sync
 
 plugins {
     id("dev.kikugie.stonecutter")
-    id("fabric-loom") version "1.15.5" apply false
-    id("net.neoforged.moddev") version "2.0.141" apply false
-    id("net.neoforged.moddev.legacyforge") version "2.0.141" apply false
+    id("fabric-loom") version "1.17.20" apply false
+    id("net.neoforged.moddev") version "2.0.147" apply false
+    id("net.neoforged.moddev.legacyforge") version "2.0.147" apply false
 }
 
 stonecutter.active("1.21.1-fabric")
@@ -16,6 +16,8 @@ val releaseTargets = listOf(
     "1.20.1-forge",
     "1.21.1-fabric",
     "1.21.1-neoforge",
+    "26.2-fabric",
+    "26.2-neoforge",
     "26.1-fabric",
     "26.1-neoforge",
 )
@@ -25,6 +27,8 @@ val mavenTargets = listOf(
     "1.20.1-forge",
     "1.21.1-fabric",
     "1.21.1-neoforge",
+    "26.2-fabric",
+    "26.2-neoforge",
     "26.1-fabric",
     "26.1-neoforge",
 )
@@ -92,7 +96,7 @@ stonecutter {
 
 tasks.register<Sync>("buildConfigArtifacts") {
     group = "build"
-    description = "Builds the six optional Rosetta Config jars."
+    description = "Builds the supported optional Rosetta Config jars."
     dependsOn(releaseTargets.map { ":config:$it:build" })
     into(layout.buildDirectory.dir("release-config"))
     releaseTargets.forEach { target ->

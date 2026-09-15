@@ -25,7 +25,7 @@ tasks.processResources {
         "version" to project.version,
         "mod_description" to groovy.json.JsonOutput.toJson(prop("mod_description")),
         "mod_authors" to groovy.json.JsonOutput.toJson(prop("mod_authors").split(",").map { it.trim() }),
-        "minecraft_version" to prop("deps.minecraft"),
+        "minecraft_version" to (versionProperties.getProperty("deps.minecraft_range") ?: prop("deps.minecraft")),
         "loader_version" to prop("deps.loader"),
     )
     inputs.properties(props)

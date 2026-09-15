@@ -227,7 +227,12 @@ public final class ConfigSync {
             }
             entries.values().stream().filter(info -> packet.modId.equals(info.modid) && isServerSetting(info.field))
                     .forEach(ClientSync::resetEntry);
-            if (net.minecraft.client.Minecraft.getInstance().screen instanceof MidnightConfigScreen screen
+            //? if >=26.2 {
+            /*var currentScreen = net.minecraft.client.Minecraft.getInstance().gui.screen();
+            *///?} else {
+            var currentScreen = net.minecraft.client.Minecraft.getInstance().screen;
+            //?}
+            if (currentScreen instanceof MidnightConfigScreen screen
                     && packet.modId.equals(screen.modid)) {
                 screen.updateList();
             }

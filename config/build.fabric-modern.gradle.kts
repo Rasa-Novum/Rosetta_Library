@@ -27,7 +27,7 @@ tasks.processResources {
         "mod_authors" to groovy.json.JsonOutput.toJson(prop("mod_authors").split(",").map { it.trim() }),
         "rosetta_version" to prop("mod_version"),
         "midnight_version" to prop("deps.midnightlib").substringBefore('+'),
-        "minecraft_version" to prop("deps.minecraft"),
+        "minecraft_version" to (versionProperties.getProperty("deps.minecraft_range") ?: prop("deps.minecraft")),
         "loader_version" to prop("deps.loader"),
     )
     inputs.properties(props)

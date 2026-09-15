@@ -7,7 +7,7 @@ authors="${mod_authors}"
 modId="rosetta_library"
 version="${version}"
 displayName="Rosetta"
-logoFile="logo.png"
+${icon_property}="logo.png"
 description='''${mod_description}'''
 
 [[dependencies.rosetta_library]]

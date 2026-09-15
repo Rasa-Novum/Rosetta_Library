@@ -20,6 +20,8 @@ include("config")
 
 stonecutter {
     create(rootProject) {
+        version("26.2-fabric", "26.2").buildscript = "build.fabric-modern.gradle.kts"
+        version("26.2-neoforge", "26.2").buildscript = "build.neoforge.gradle.kts"
         version("26.1-fabric", "26.1").buildscript = "build.fabric-modern.gradle.kts"
         version("26.1-neoforge", "26.1").buildscript = "build.neoforge.gradle.kts"
         version("1.21.1-fabric", "1.21.1").buildscript = "build.fabric-legacy.gradle.kts"
@@ -29,6 +31,8 @@ stonecutter {
         vcsVersion = "1.21.1-fabric"
     }
     create(project(":config")) {
+        version("26.2-fabric", "26.2").buildscript = "build.fabric-modern.gradle.kts"
+        version("26.2-neoforge", "26.2").buildscript = "build.neoforge.gradle.kts"
         version("26.1-fabric", "26.1").buildscript = "build.fabric-modern.gradle.kts"
         version("26.1-neoforge", "26.1").buildscript = "build.neoforge.gradle.kts"
         version("1.21.1-fabric", "1.21.1").buildscript = "build.fabric-legacy.gradle.kts"

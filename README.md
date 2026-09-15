@@ -14,7 +14,8 @@ Rosetta Library uses [Stonecutter](https://stonecutter.kikugie.dev/) to maintain
 
 | MC Version | Fabric Version | Forge Version | NeoForge Version | Quilt Version |
 |:----------:|:--------------:|:-------------:|:----------------:|:-------------:|
-|    26.1    |       ✅        |       ❌       |        ✅         |       ❌       |
+|    26.2    |       ✅        |       ❌       |        ✅         |       ❌       |
+|   26.1.x   |       ✅        |       ❌       |        ✅         |       ❌       |
 |   1.21.1   |       ✅        |       ❌       |        ✅         |       ❌       |
 |   1.20.1   |       ✅        |       ✅       |        ❌         |       ❌       |
 
@@ -26,7 +27,7 @@ Build every supported target:
 .\gradlew.bat buildReleaseArtifacts
 ```
 
-Target-specific jars are written to `build/release`.
+Target-specific jars are written to `build/release`. The `26.1` jars support Minecraft 26.1, 26.1.1, and 26.1.2 (`>=26.1 <26.2`); 26.2 uses separate jars. Rosetta Config uses the same version ranges and can be built with `buildConfigArtifacts`.
 
 Build one target:
 
@@ -34,7 +35,7 @@ Build one target:
 .\gradlew.bat :1.21.1-fabric:build
 ```
 
-Available targets are `26.1-fabric`, `26.1-neoforge`, `1.21.1-fabric`, `1.21.1-neoforge`, `1.20.1-fabric`, and `1.20.1-forge`.
+Available targets are `26.2-fabric`, `26.2-neoforge`, `26.1-fabric`, `26.1-neoforge`, `1.21.1-fabric`, `1.21.1-neoforge`, `1.20.1-fabric`, and `1.20.1-forge`.
 
 ## Usage
 
@@ -54,7 +55,7 @@ dependencies {
 }
 ```
 
-Use the artifact matching the Minecraft version and loader: `rosetta-1.20.1-fabric`, `rosetta-1.20.1-forge`, `rosetta-1.21.1-fabric`, `rosetta-1.21.1-neoforge`, `rosetta-26.1-fabric`, or `rosetta-26.1-neoforge`.
+Use the artifact matching the Minecraft version and loader: `rosetta-1.20.1-fabric`, `rosetta-1.20.1-forge`, `rosetta-1.21.1-fabric`, `rosetta-1.21.1-neoforge`, `rosetta-26.1-fabric`, `rosetta-26.1-neoforge`, `rosetta-26.2-fabric`, or `rosetta-26.2-neoforge`.
 
 ### Registries
 
