@@ -1,4 +1,4 @@
-package net.rasanovum.rosetta.loaders.fabric.mixin;
+package net.rasanovum.rosetta.mixin.client;
 
 //? if >=26.3 {
 /*import com.mojang.renderpearl.api.textures.GpuTextureView;

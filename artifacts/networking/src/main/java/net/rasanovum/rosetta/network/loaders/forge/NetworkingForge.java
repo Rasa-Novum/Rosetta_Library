@@ -1,4 +1,4 @@
-package net.rasanovum.rosetta.loaders.forge;
+package net.rasanovum.rosetta.network.loaders.forge;
 //? if forge {
 /*import net.minecraftforge.fml.common.Mod;
 @Mod("rosetta_networking")

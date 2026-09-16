@@ -1,4 +1,4 @@
-package net.rasanovum.rosetta.loaders.fabric;
+package net.rasanovum.rosetta.network.loaders.fabric;
 
 //? if fabric {
 import io.netty.buffer.Unpooled;

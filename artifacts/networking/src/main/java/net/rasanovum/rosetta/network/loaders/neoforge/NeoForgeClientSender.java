@@ -1,4 +1,4 @@
-package net.rasanovum.rosetta.loaders.neoforge;
+package net.rasanovum.rosetta.network.loaders.neoforge;
 
 //? if neoforge && <26.1 {
 /*import net.neoforged.neoforge.network.PacketDistributor;

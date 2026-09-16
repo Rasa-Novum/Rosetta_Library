@@ -27,6 +27,7 @@ stonecutter {
         project(":attachments"), project(":resources"), project(":resources-sync"))) {
         create(module) {
             version("26.3-fabric", "26.3").buildscript = "build.fabric-modern.gradle.kts"
+            version("26.3-neoforge", "26.3").buildscript = "build.neoforge.gradle.kts"
             version("26.2-fabric", "26.2").buildscript = "build.fabric-modern.gradle.kts"
             version("26.2-neoforge", "26.2").buildscript = "build.neoforge.gradle.kts"
             version("26.1-fabric", "26.1").buildscript = "build.fabric-modern.gradle.kts"

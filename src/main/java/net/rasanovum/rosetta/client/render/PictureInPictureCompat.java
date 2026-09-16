@@ -14,7 +14,7 @@ public final class PictureInPictureCompat {
 
     public static Targets targets(PictureInPictureRenderer<?> renderer) {
         //? if >=26.3 {
-        var accessor = (net.rasanovum.rosetta.loaders.fabric.mixin.PictureInPictureRendererAccessor) renderer;
+        var accessor = (net.rasanovum.rosetta.mixin.client.PictureInPictureRendererAccessor) renderer;
         return new Targets(accessor.rosetta$getColorTarget(), accessor.rosetta$getDepthTarget());
         //?} else {
         //? if >=26.2 {

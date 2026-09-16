@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.rasanovum.rosetta.mixin.client",
+  "compatibilityLevel": "${mixin_compatibility}",
+  "client": [
+    "PictureInPictureRendererAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

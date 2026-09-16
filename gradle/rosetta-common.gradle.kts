@@ -39,8 +39,8 @@ if (loader != "fabric" && module in setOf("core", "config")) {
     tasks.named<Jar>("jar") { exclude("net/rasanovum/rosetta/loaders/fabric/mixin/**") }
 }
 tasks.named<ProcessResources>("processResources") {
-    if (project.name != "26.3-fabric") {
-        filesMatching("rosetta.mixins.json") {
+    if (prop("deps.minecraft") != "26.3") {
+        filesMatching("rosetta-client.mixins.json") {
             filter { line: String -> line.takeUnless { it.contains("PictureInPictureRendererAccessor") } }
         }
     }
@@ -48,7 +48,7 @@ tasks.named<ProcessResources>("processResources") {
         "version" to project.version,
         "module_version" to prop("module_version"),
         "rosetta_version" to prop("mod_version"),
-        "icon_property" to (if (prop("deps.minecraft") == "26.2") "iconFile" else "logoFile"),
+        "icon_property" to (if (prop("deps.minecraft") in setOf("26.2", "26.3")) "iconFile" else "logoFile"),
         "mixin_compatibility" to "JAVA_$targetJava",
         "mod_description" to prop("mod_description"),
         "mod_authors" to prop("mod_authors"),
@@ -65,7 +65,7 @@ tasks.named<ProcessResources>("processResources") {
     }
     inputs.properties(props)
     filesMatching(listOf("fabric.mod.json", "META-INF/mods.toml", "META-INF/neoforge.mods.toml",
-        "runeweaver.mixins.json", "runeweaver.forge.mixins.json")) { expand(props) }
+        "runeweaver.mixins.json", "runeweaver.forge.mixins.json", "rosetta-client.mixins.json")) { expand(props) }
     if (loader != "fabric") exclude("fabric.mod.json")
     if (loader != "forge") exclude("META-INF/mods.toml")
     if (loader != "neoforge") exclude("META-INF/neoforge.mods.toml")

@@ -1,4 +1,4 @@
-package net.rasanovum.rosetta.loaders.neoforge;
+package net.rasanovum.rosetta.network.loaders.neoforge;
 
 //? if neoforge {
 /*import net.minecraft.network.protocol.common.custom.CustomPacketPayload;

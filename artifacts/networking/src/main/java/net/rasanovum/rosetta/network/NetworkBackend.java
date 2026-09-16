@@ -4,11 +4,11 @@ import net.minecraft.server.level.ServerPlayer;
 
 public interface NetworkBackend {
     //? if fabric
-    NetworkBackend INSTANCE = new net.rasanovum.rosetta.loaders.fabric.FabricNetworkBackend();
+    NetworkBackend INSTANCE = new net.rasanovum.rosetta.network.loaders.fabric.FabricNetworkBackend();
     //? if forge
-    /*NetworkBackend INSTANCE = new net.rasanovum.rosetta.loaders.forge.ForgeNetworkBackend();*/
+    /*NetworkBackend INSTANCE = new net.rasanovum.rosetta.network.loaders.forge.ForgeNetworkBackend();*/
     //? if neoforge
-    /*NetworkBackend INSTANCE = new net.rasanovum.rosetta.loaders.neoforge.NeoForgeNetworkBackend();*/
+    /*NetworkBackend INSTANCE = new net.rasanovum.rosetta.network.loaders.neoforge.NeoForgeNetworkBackend();*/
 
     <T extends RosettaPacket> void registerServerbound(PacketDefinition<T> definition);
 
