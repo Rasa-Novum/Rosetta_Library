@@ -1,14 +1,17 @@
 {
   "schemaVersion": 1,
+  "icon": "logo.png",
   "id": "rosetta_config",
   "version": "${version}",
-  "name": "Rosetta Config",
+  "name": "${mod_name}",
   "description": ${mod_description},
   "authors": ${mod_authors},
   "contact": {
-    "sources": "https://github.com/Rasa-Novum/Rosetta_Library"
+    "homepage": "${mod_homepage}",
+    "sources": "${mod_sources}",
+    "issues": "${mod_issues}"
   },
-  "license": "MIT",
+  "license": "${mod_license}",
   "environment": "*",
   "mixins": [
     "rosetta-config.mixins.json"

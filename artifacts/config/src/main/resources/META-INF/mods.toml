@@ -1,12 +1,16 @@
 modLoader="javafml"
 loaderVersion="${loader_version_range}"
-license="MIT"
+license="${mod_license}"
+
+issueTrackerURL="${mod_issues}"
 
 [[mods]]
 authors="${mod_authors}"
 modId="rosetta_config"
 version="${version}"
-displayName="Rosetta Config"
+displayName="${mod_name}"
+displayURL="${mod_homepage}"
+logoFile="logo.png"
 description='''${mod_description}'''
 
 [[dependencies.rosetta_config]]

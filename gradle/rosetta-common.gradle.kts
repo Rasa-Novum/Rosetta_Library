@@ -50,7 +50,12 @@ tasks.named<ProcessResources>("processResources") {
         "rosetta_version" to prop("mod_version"),
         "icon_property" to (if (prop("deps.minecraft") in setOf("26.2", "26.3")) "iconFile" else "logoFile"),
         "mixin_compatibility" to "JAVA_$targetJava",
+        "mod_name" to prop("mod_name"),
         "mod_description" to prop("mod_description"),
+        "mod_license" to prop("mod_license"),
+        "mod_homepage" to prop("mod_homepage"),
+        "mod_sources" to prop("mod_sources"),
+        "mod_issues" to prop("mod_issues"),
         "mod_authors" to prop("mod_authors"),
     )
     if (module == "config") props["midnight_version"] = prop("deps.midnightlib").substringBefore('+')

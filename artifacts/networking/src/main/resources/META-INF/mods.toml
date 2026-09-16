@@ -1,13 +1,17 @@
 modLoader="javafml"
 loaderVersion="${loader_version_range}"
-license="MIT"
+license="${mod_license}"
+
+issueTrackerURL="${mod_issues}"
 
 [[mods]]
 modId="rosetta_networking"
 version="${version}"
-displayName="Rosetta Networking"
-authors="Rasa Novum, xameryn"
-description="Networking compatibility module."
+displayName="${mod_name}"
+displayURL="${mod_homepage}"
+logoFile="logo.png"
+authors="${mod_authors}"
+description='''${mod_description}'''
 
 [[dependencies.rosetta_networking]]
 modId="minecraft"

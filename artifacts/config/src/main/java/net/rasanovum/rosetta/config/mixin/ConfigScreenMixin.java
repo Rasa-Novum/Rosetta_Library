@@ -29,11 +29,8 @@ public abstract class ConfigScreenMixin {
         ConfigSync.ClientSync.permissions((MidnightConfigScreen) (Object) this);
     }
 
-    //? if >=26.1 {
-    /*@Redirect(method = "lambda$init$1", at = @At(value = "INVOKE",
-    *///?} else {
-    @Redirect(method = "lambda$init$6", at = @At(value = "INVOKE",
-    //?}
+    // Lambda names vary between MidnightLib releases; match the save call itself.
+    @Redirect(method = "*", at = @At(value = "INVOKE",
             target = "Leu/midnightdust/lib/config/MidnightConfig;write(Ljava/lang/String;)V"))
     private void rosettaConfig$save(String id) {
         ConfigSync.ClientSync.save(id);
