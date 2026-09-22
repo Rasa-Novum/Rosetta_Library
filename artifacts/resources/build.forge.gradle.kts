@@ -1,4 +1,4 @@
-plugins { id("net.neoforged.moddev.legacyforge") }
+plugins { id("net.rasanovum.rosetta.pack-metadata"); id("net.neoforged.moddev.legacyforge") }
 
 apply(from = rootProject.file("gradle/rosetta-common.gradle.kts"))
 fun prop(name: String): String = property(name).toString()

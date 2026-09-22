@@ -51,7 +51,14 @@ public final class ForgeEventHooks {
 
     @SubscribeEvent
     public static void dataPackReloaded(TagsUpdatedEvent event) {
-        if (server != null) ServerHooks.dataPackReloaded(server);
+        if (server != null && event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) {
+            MinecraftServer currentServer = server;
+            currentServer.execute(() -> {
+                if (server == currentServer) {
+                    ServerHooks.dataPackReloaded(currentServer);
+                }
+            });
+        }
     }
 
     @SubscribeEvent

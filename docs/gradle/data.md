@@ -130,6 +130,7 @@ Kinds are `combined` (default, for mod jars), `data`, and `resources`. Generated
 
 | Minecraft | Data | Resources |
 | --- | --- | --- |
+| 1.19.2 | 10 | 9 |
 | 1.20.1 | 15 | 15 |
 | 1.21.1 | 48 | 34 |
 | 26.1 | 101.1 | 84.0 |
@@ -141,3 +142,7 @@ Combined packs advertise the range spanning both pack types. For 1.21.1 this use
 ## Notes
 
 The plugin does not cover loot tables, worldgen, item models, arbitrary JSON transformations, or automatic registry validation (yet).
+
+## Resource-only library metadata
+
+Apply `net.rasanovum.rosetta.pack-metadata` in a target build script and use `project.extra["rosetta.packFormatFields"]` when expanding a `pack.mcmeta` template's format members. The plugin derives the Minecraft version and loader from the Stonecutter project name. This shares the data compiler's verified version table without generating a datapack or changing source directories. For Forge 1.19.2 it includes resource format 9 and data format 10 as typed Forge fields.

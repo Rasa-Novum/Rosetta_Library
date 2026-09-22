@@ -1,4 +1,4 @@
-plugins { id("net.neoforged.moddev.legacyforge") }
+plugins { id("net.rasanovum.rosetta.pack-metadata"); id("net.neoforged.moddev.legacyforge") }
 
 apply(from = rootProject.file("gradle/rosetta-common.gradle.kts"))
 fun prop(name: String): String = property(name).toString()
@@ -11,10 +11,9 @@ legacyForge {
 apply(from = rootProject.file("gradle/rosetta-publishing.gradle.kts"))
 apply(from = rootProject.file("gradle/rosetta-pack-metadata.gradle.kts"))
 
-repositories { maven("https://api.modrinth.com/maven") }
+apply(from = rootProject.file("gradle/rosetta-midnight.gradle.kts"))
 dependencies {
     implementation(project(":${project.name}"))
-    implementation("maven.modrinth:midnightlib:${prop("deps.midnightlib")}")
 }
 
 tasks.jar { manifest.attributes["MixinConfigs"] = "rosetta-config.mixins.json" }

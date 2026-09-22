@@ -44,6 +44,16 @@ tasks.named<ProcessResources>("processResources") {
             filter { line: String -> line.takeUnless { it.contains("PictureInPictureRendererAccessor") } }
         }
     }
+    filesMatching("rosetta-client.mixins.json") {
+        filter { line: String ->
+            when {
+                line.contains("LegacyCreativeTabMixin") && prop("deps.minecraft") != "1.19.2" -> null
+                line.contains("LegacyCreativeTabMixin") -> line.replace("\",", "\"")
+                line.contains("rosetta.refmap.json") && (loader != "forge" || prop("deps.minecraft") != "1.19.2") -> null
+                else -> line
+            }
+        }
+    }
     val props = mutableMapOf<String, Any>(
         "version" to project.version,
         "module_version" to prop("module_version"),

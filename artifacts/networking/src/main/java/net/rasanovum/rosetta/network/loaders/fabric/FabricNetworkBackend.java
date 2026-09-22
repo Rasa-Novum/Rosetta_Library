@@ -39,7 +39,7 @@ public final class FabricNetworkBackend implements NetworkBackend {
         //?} else {
         /*ServerPlayNetworking.registerGlobalReceiver(definition.id(), (server, player, listener, buffer, responseSender) -> {
             T packet = definition.reader().apply(buffer);
-            server.execute(() -> definition.handler().handle(packet, player.level(), player));
+            server.execute(() -> definition.handler().handle(packet, net.rasanovum.rosetta.util.EntityCompat.getPlayerServerLevel(player), player));
         });
         *///?}
     }

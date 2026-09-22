@@ -10,7 +10,7 @@ repositories {
     maven("https://maven.kikugie.dev/releases")
 }
 dependencies {
-    implementation("dev.kikugie:stonecutter:0.7.10")
+    compileOnly("dev.kikugie:stonecutter:0.9.7")
     implementation("com.google.code.gson:gson:2.10.1")
 }
 java { toolchain.languageVersion.set(JavaLanguageVersion.of(21)) }
@@ -23,6 +23,10 @@ gradlePlugin {
         create("localDependencies") {
             id = "net.rasanovum.rosetta.local-dependencies"
             implementationClass = "net.rasanovum.rosetta.gradle.RosettaLocalDependenciesPlugin"
+        }
+        create("packMetadata") {
+            id = "net.rasanovum.rosetta.pack-metadata"
+            implementationClass = "net.rasanovum.rosetta.gradle.RosettaPackMetadataPlugin"
         }
         create("data") {
             id = "net.rasanovum.rosetta.data"

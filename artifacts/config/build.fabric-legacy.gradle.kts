@@ -1,4 +1,4 @@
-plugins { id("fabric-loom") }
+plugins { id("net.rasanovum.rosetta.pack-metadata"); id("fabric-loom") }
 
 apply(from = rootProject.file("gradle/rosetta-common.gradle.kts"))
 fun prop(name: String): String = property(name).toString()
@@ -17,10 +17,9 @@ dependencies {
 apply(from = rootProject.file("gradle/rosetta-publishing.gradle.kts"))
 apply(from = rootProject.file("gradle/rosetta-pack-metadata.gradle.kts"))
 
-repositories { maven("https://api.modrinth.com/maven") }
+apply(from = rootProject.file("gradle/rosetta-midnight.gradle.kts"))
 dependencies {
     implementation(project(path = ":${project.name}", configuration = "namedElements"))
-    modImplementation("maven.modrinth:midnightlib:${prop("deps.midnightlib")}")
 }
 
 apply(from = rootProject.file("gradle/rosetta-release-size.gradle.kts"))

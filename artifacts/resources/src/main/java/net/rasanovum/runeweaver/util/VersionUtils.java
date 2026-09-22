@@ -31,7 +31,7 @@ public final class VersionUtils {
         //? if >=26.1 {
         return id.withSuffix(suffix);
         //?} else {
-        /*return id.withPath(path(id) + suffix);
+        /*return id(namespace(id), path(id) + suffix);
         *///?}
     }
 

@@ -58,7 +58,7 @@ public final class NeoForgeClientHooks {
         //?}
     }
 
-    //? if >=26.1
+    //? if >=26.1 {
     /^private static void renderWorldModern(RenderLevelStageEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level != null && minecraft.player != null) {
@@ -78,5 +78,6 @@ public final class NeoForgeClientHooks {
             //?}
         }
     }^/
+    //?}
 }
 *///?}

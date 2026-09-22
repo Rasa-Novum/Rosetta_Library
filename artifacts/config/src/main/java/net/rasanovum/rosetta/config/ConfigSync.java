@@ -103,7 +103,7 @@ public final class ConfigSync {
         int level = setting.requireCheats() ? Math.max(2, setting.permissionLevel()) : setting.permissionLevel();
         if (EntityCompat.hasPermission(player, level)) return true;
         if (setting.requireCheats()) return false;
-        MinecraftServer active = player.level().getServer();
+        MinecraftServer active = EntityCompat.getPlayerServer(player);
         //? if >=26.1 {
         /*return active.isSingleplayerOwner(new NameAndId(player.getGameProfile()));
         *///?} else {

@@ -1,9 +1,11 @@
 {
   "required": true,
   "minVersion": "0.8",
+  "refmap": "rosetta.refmap.json",
   "package": "net.rasanovum.rosetta.mixin.client",
   "compatibilityLevel": "${mixin_compatibility}",
   "client": [
+    "LegacyCreativeTabMixin",
     "PictureInPictureRendererAccessor"
   ],
   "injectors": {

@@ -6,7 +6,11 @@ Server-synchronized settings for MidnightLib. Handles sync between server and cl
 net.rasanovum.rosetta:rosetta-config-<minecraft>-<loader>:0.2.0
 ```
 
-Requires core, networking, and MidnightLib. See [setup](../setup.md).
+Requires core and networking; MidnightLib is bundled by Config on every loader. See [setup](../setup.md).
+
+Config's Maven POM exposes the matching MidnightLib API through `net.rasanovum.rosetta:midnightlib-<target>:<config-version>`. The API artifact is the same binary nested in Config, including any Rosetta-owned patches. Fabric and NeoForge consumers receive it transitively. Legacy Forge's non-transitive mod remapping requires an explicit `modImplementation` entry for that API coordinate; do not jar-in-jar it again. Consumers do not select a separate MidnightLib version or repository.
+
+Publishing Config to the local Rosetta Maven repository also publishes this API artifact. Modified binaries, licenses, checksums, and refresh instructions live in [gradle/overrides](../../gradle/overrides/README.md).
 
 ## Usage
 

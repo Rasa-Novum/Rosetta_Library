@@ -31,7 +31,11 @@ public interface RuneweaverCodecs {
 
         @Override
         public Resource serialize(Resource r, JsonElement x) {
+            //? if <1.19.3 {
+            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(x.toString().getBytes()), r::metadata);
+            *///?} else {
             return new Resource(r.source(), () -> new ByteArrayInputStream(x.toString().getBytes()), r::metadata);
+            //?}
         }
 
         @Override
@@ -55,7 +59,11 @@ public interface RuneweaverCodecs {
 
         @Override
         public Resource serialize(Resource r, BufferedImage x) {
+            //? if <1.19.3 {
+            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(bufferedImageToStream(x).toByteArray()), r::metadata);
+            *///?} else {
             return new Resource(r.source(), () -> new ByteArrayInputStream(bufferedImageToStream(x).toByteArray()), r::metadata);
+            //?}
         }
 
         @Override
@@ -81,7 +89,11 @@ public interface RuneweaverCodecs {
 
         @Override
         public Resource serialize(Resource r, CompoundTag x) {
+            //? if <1.19.3 {
+            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(nbtToStream(x).toByteArray()), r::metadata);
+            *///?} else {
             return new Resource(r.source(), () -> new ByteArrayInputStream(nbtToStream(x).toByteArray()), r::metadata);
+            //?}
         }
 
         @Override

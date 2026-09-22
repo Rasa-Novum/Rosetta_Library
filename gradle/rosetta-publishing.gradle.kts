@@ -63,7 +63,7 @@ extensions.configure<PublishingExtension> {
                 }
                 if (module == "config") {
                     dependency("net.rasanovum.rosetta", "rosetta-networking-$target", rootProject.property("module_version").toString())
-                    dependency("maven.modrinth", "midnightlib", project.property("deps.midnightlib").toString())
+                    dependency("net.rasanovum.rosetta", "midnightlib-$target", project.version.toString())
                 }
                 if (module == "resources-sync") {
                     dependency("net.rasanovum.rosetta", "rosetta-networking-$target", rootProject.property("module_version").toString())

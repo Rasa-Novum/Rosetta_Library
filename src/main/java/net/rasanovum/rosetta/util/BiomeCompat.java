@@ -2,6 +2,7 @@ package net.rasanovum.rosetta.util;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+//? if >=1.19.3
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -53,7 +54,11 @@ public final class BiomeCompat {
         //? if >=26.1 {
         /*return server.registryAccess().lookupOrThrow(Registries.BIOME);
         *///?} else {
+        //? if <1.19.3 {
+        /*return server.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
+        *///?} else {
         return server.registryAccess().registryOrThrow(Registries.BIOME);
+        //?}
         //?}
     }
 
@@ -61,7 +66,11 @@ public final class BiomeCompat {
         //? if >=26.1 {
         /*return level.registryAccess().lookupOrThrow(Registries.BIOME);
         *///?} else {
+        //? if <1.19.3 {
+        /*return level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
+        *///?} else {
         return level.registryAccess().registryOrThrow(Registries.BIOME);
+        //?}
         //?}
     }
 
@@ -69,7 +78,13 @@ public final class BiomeCompat {
         //? if >=26.1 {
         /*return registry.get(location);
         *///?} else {
+        //? if <1.19.3 {
+        /*return registry.getHolder(ResourceKey.create(Registry.BIOME_REGISTRY, location))
+                .filter(holder -> holder instanceof Holder.Reference<Biome>)
+                .map(holder -> (Holder.Reference<Biome>) holder);
+        *///?} else {
         return registry.getHolder(ResourceKey.create(Registries.BIOME, location));
+        //?}
         //?}
     }
 

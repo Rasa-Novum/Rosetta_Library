@@ -33,7 +33,11 @@ public final class EntityCompat {
         //? if >=26.1 {
         /*return player.level();
         *///?} else {
+        //? if <1.19.3 {
+        /*return player.getLevel();
+        *///?} else {
         return player.serverLevel();
+        //?}
         //?}
     }
 
@@ -114,7 +118,22 @@ public final class EntityCompat {
         //? if >=26.1 {
         /*entity.teleportTo(level, x, y, z, java.util.Set.of(), yRot, xRot, false);
         *///?}
-        //? if <26.1
+        //? if <1.19.3 {
+        /*if (entity instanceof ServerPlayer player) {
+            player.teleportTo(level, x, y, z, yRot, xRot);
+        } else if (entity.level == level) {
+            entity.moveTo(x, y, z, yRot, xRot);
+        } else {
+            Entity replacement = entity.getType().create(level);
+            if (replacement != null) {
+                replacement.restoreFrom(entity);
+                replacement.moveTo(x, y, z, yRot, xRot);
+                entity.setRemoved(Entity.RemovalReason.CHANGED_DIMENSION);
+                level.addDuringTeleport(replacement);
+            }
+        }
+        *///?}
+        //? if >=1.19.3 && <26.1
         entity.teleportTo(level, x, y, z, java.util.Set.of(), yRot, xRot);
     }
 }

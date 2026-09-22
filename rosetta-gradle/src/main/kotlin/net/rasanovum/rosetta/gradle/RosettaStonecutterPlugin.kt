@@ -1,28 +1,38 @@
 package net.rasanovum.rosetta.gradle
 
 import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
-import dev.kikugie.stonecutter.build.param.StonecutterBuildProperties
+import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.SetProperty
+
+private val legacyWidgetTypes = setOf("Button", "AbstractButton", "AbstractWidget", "Tooltip")
 
 abstract class RosettaStonecutterExtension {
     abstract val profiles: SetProperty<String>
+    abstract val widgetTypes: SetProperty<String>
+    abstract val widgetAdapters: MapProperty<String, String>
 }
 
 class RosettaStonecutterPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val options = project.extensions.create("rosettaStonecutter", RosettaStonecutterExtension::class.java)
         options.profiles.convention(setOf("common"))
+        options.widgetTypes.convention(legacyWidgetTypes)
+        options.widgetAdapters.convention(emptyMap())
         project.plugins.withId("dev.kikugie.stonecutter") {
             val controller = project.extensions.getByType(StonecutterControllerExtension::class.java)
             project.afterEvaluate {
                 controller.parameters {
                     val selected = options.profiles.get()
-                    require(selected.all { it in setOf("common", "rendering", "renderingMethods", "clientAnnotations") }) {
+                    require(selected.all { it in setOf("common", "legacyGui", "legacy1192Registries", "widgets", "rendering", "renderingMethods", "clientAnnotations") }) {
                         "Unknown Rosetta Stonecutter profile: $selected"
                     }
                     if ("common" in selected) common()
+                    if ("widgets" in selected) widgets(options)
+                    if ("legacyGui" in selected && "common" !in selected) legacyGui()
+                    if ("legacy1192Registries" in selected) legacy1192Registries()
                     if (eval(node.metadata.version, ">=26.3")) {
                         if ("renderingMethods" in selected) renderingMethods()
                         if ("rendering" in selected) rendering()
@@ -37,23 +47,35 @@ class RosettaStonecutterPlugin : Plugin<Project> {
     }
 }
 
-private fun StonecutterBuildProperties.rename(version: String, old: String, new: String) {
+private fun StonecutterBuildExtension.rename(version: String, old: String, new: String) {
     replacements.string { direction.set(eval(node.metadata.version, ">=$version")); replace(old, new) }
 }
 
-private fun StonecutterBuildProperties.common() {
+private fun StonecutterBuildExtension.common() {
     constants.match(node.metadata.project.substringAfterLast('-'), "fabric", "forge", "neoforge")
+    legacyGui()
     val modern = eval(node.metadata.version, ">=26.1")
     constants.put("mc_26", modern)
     rename("26.1", "ResourceLocation", "Identifier")
     replacements.regex {
         direction.set(modern)
-        replace("\\bGuiGraphics\\b", "GuiGraphicsExtractor")
-        reverse("\\bGuiGraphicsExtractor\\b", "GuiGraphics")
+        replace("\\bGuiGraphics\\b", "GuiGraphicsExtractor", "\\bGuiGraphicsExtractor\\b", "GuiGraphics")
     }
 }
 
-private fun StonecutterBuildProperties.rendering() {
+private fun StonecutterBuildExtension.legacy1192Registries() {
+    if (!eval(node.metadata.version, "<1.19.3")) return
+    mapOf(
+        "net.minecraft.core.registries.BuiltInRegistries" to "net.minecraft.core.Registry",
+        "net.minecraft.core.registries.Registries" to "net.minecraft.core.Registry",
+        "Registries.DIMENSION" to "Registry.DIMENSION_REGISTRY"
+    ).forEach { (old, new) -> replacements.string { direction.set(true); replace(old, new) } }
+    replacements.regex { direction.set(true); replace("\\bBuiltInRegistries\\b", "Registry", "\\bRegistry\\b", "BuiltInRegistries") }
+    replacements.regex { direction.set(true); replace("\\bMapColor\\b", "MaterialColor", "\\bMaterialColor\\b", "MapColor") }
+    replacements.string { direction.set(true); replace("org.joml.Vector4f", "com.mojang.math.Vector4f") }
+}
+
+private fun StonecutterBuildExtension.rendering() {
     val packages = linkedMapOf(
         "buffers.GpuBuffer" to "buffers.GpuBuffer",
         "buffers.GpuBufferSlice" to "buffers.GpuBufferSlice",
@@ -77,7 +99,7 @@ private fun StonecutterBuildProperties.rendering() {
     packages.forEach { (old, new) -> rename("26.3", "com.mojang.blaze3d.$old", "com.mojang.renderpearl.api.$new") }
 }
 
-private fun StonecutterBuildProperties.renderingMethods() {
+private fun StonecutterBuildExtension.renderingMethods() {
     linkedMapOf(
         "VertexFormat.Mode" to "com.mojang.blaze3d.PrimitiveTopology",
         "VertexFormatElement.COLOR" to "DefaultVertexFormat.COLOR_SEMANTIC_NAME",
@@ -88,7 +110,7 @@ private fun StonecutterBuildProperties.renderingMethods() {
     ).forEach { (old, new) -> rename("26.2", old, new) }
 }
 
-private fun StonecutterBuildProperties.clientAnnotations() {
+private fun StonecutterBuildExtension.clientAnnotations() {
     val loader = node.metadata.project.substringAfterLast('-')
     val annotations = mapOf(
         "fabric" to "@net.fabricmc.api.Environment(net.fabricmc.api.EnvType.CLIENT)",
@@ -100,5 +122,43 @@ private fun StonecutterBuildProperties.clientAnnotations() {
     val chosen = annotations.getValue(key)
     annotations.values.filter { it != chosen }.forEach { old ->
         replacements.string { direction.set(true); replace(old, chosen) }
+    }
+}
+
+private fun StonecutterBuildExtension.widgets(options: RosettaStonecutterExtension) {
+    if (!eval(node.metadata.version, "<1.20")) return
+    val selectedTypes = options.widgetTypes.get()
+    require(legacyWidgetTypes.containsAll(selectedTypes)) { "Unknown widget types: ${selectedTypes - legacyWidgetTypes}" }
+    val adapters = selectedTypes.associate { type ->
+        "net.minecraft.client.gui.components.$type" to "net.rasanovum.rosetta.client.gui.legacy.$type"
+    } + options.widgetAdapters.get()
+    adapters.forEach { (vanilla, legacy) ->
+        replacements.regex {
+            direction.set(true)
+            val boundary = if (vanilla.endsWith(".")) "" else "\\b"
+            replace("\\b${Regex.escape(vanilla)}$boundary", legacy, "\\b${Regex.escape(legacy)}$boundary", vanilla)
+        }
+    }
+}
+
+private fun StonecutterBuildExtension.legacyGui() {
+    if (eval(node.metadata.version, "<1.20")) {
+        replacements.string {
+            direction.set(true)
+            replace("net.minecraft.client.gui.GuiGraphicsExtractor", "com.mojang.blaze3d.vertex.PoseStack")
+        }
+        replacements.regex {
+            direction.set(true)
+            replace("\\bGuiGraphicsExtractor\\b", "PoseStack", "\\bPoseStack\\b", "GuiGraphicsExtractor")
+        }
+        replacements.string {
+            direction.set(true)
+            replace("net.minecraft.client.gui.GuiGraphics", "com.mojang.blaze3d.vertex.PoseStack")
+        }
+        replacements.regex {
+            direction.set(true)
+            replace("\\bGuiGraphics\\b", "PoseStack", "\\bPoseStack\\b", "GuiGraphics")
+        }
+        replacements.string { direction.set(true); replace("getGuiGraphics()", "getPoseStack()") }
     }
 }

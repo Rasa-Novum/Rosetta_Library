@@ -42,7 +42,7 @@ public final class ForgeNetworkBackend implements NetworkBackend {
                     var context = contextSupplier.get();
                     if (direction == NetworkDirection.PLAY_TO_SERVER) {
                         ServerPlayer sender = context.getSender();
-                        if (sender != null) definition.handler().handle(packet, sender.level(), sender);
+                        if (sender != null) definition.handler().handle(packet, net.rasanovum.rosetta.util.EntityCompat.getPlayerServerLevel(sender), sender);
                     } else {
                         Client.handle(packet, definition);
                     }

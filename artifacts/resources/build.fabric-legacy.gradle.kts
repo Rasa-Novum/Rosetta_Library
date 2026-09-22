@@ -1,4 +1,4 @@
-plugins { id("fabric-loom") }
+plugins { id("net.rasanovum.rosetta.pack-metadata"); id("fabric-loom") }
 
 apply(from = rootProject.file("gradle/rosetta-common.gradle.kts"))
 fun prop(name: String): String = property(name).toString()

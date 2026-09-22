@@ -4,16 +4,8 @@ import com.google.gson.*
 
 /** Converts supported vanilla 1.21.1 JSON into each supported pack format. */
 internal class DataCompiler(private val version: String, private val loader: String) {
-    private val legacy = version == "1.20.1"
+    private val legacy = version in setOf("1.19.2", "1.20.1")
     private val modern = version.startsWith("26.")
-    private val formats = when (version) {
-        "1.20.1" -> 15 to 15
-        "1.21.1" -> 48 to 34
-        "26.1" -> 101 to 84
-        "26.2" -> 107 to 88
-        "26.3" -> 121 to 97
-        else -> error("Unsupported Minecraft version '$version'; add a verified format adapter first")
-    }
     private val hint = "; use a complete target-specific \$rosetta.native definition for unsupported formats"
     private val idPattern = Regex("[a-z0-9_.-]+:[a-z0-9/._-]+")
 
@@ -23,23 +15,8 @@ internal class DataCompiler(private val version: String, private val loader: Str
         textComponent(input["description"])
         val kind = input.get("kind")?.asString ?: "combined"
         require(kind in setOf("combined", "data", "resources")) { "Pack kind must be combined, data, or resources" }
-        val pack = JsonObject()
+        val pack = PackMetadata.forTarget(version, loader, kind)
         pack.add("description", input["description"].deepCopy())
-        val dataMinor = if (version == "26.1" || version == "26.2") 1 else 0
-        val resourceMinor = if (version == "26.3") 1 else 0
-        if (modern) {
-            fun format(major: Int, minor: Int): JsonElement = JsonArray().also { it.add(major); it.add(minor) }
-            pack.add("min_format", if (kind == "data") format(formats.first, dataMinor) else format(formats.second, resourceMinor))
-            pack.add("max_format", if (kind == "resources") format(formats.second, resourceMinor) else format(formats.first, dataMinor))
-        } else {
-            pack.addProperty("pack_format", if (kind == "resources") formats.second else formats.first)
-            if (kind == "combined" && formats.first != formats.second) {
-                pack.add("supported_formats", JsonObject().also {
-                    it.addProperty("min_inclusive", formats.second)
-                    it.addProperty("max_inclusive", formats.first)
-                })
-            }
-        }
         return JsonObject().also { it.add("pack", pack) }
     }
 
@@ -52,7 +29,7 @@ internal class DataCompiler(private val version: String, private val loader: Str
         if (metadata != null) {
             fields(metadata, setOf("overrides", "native", "exclude"))
             val selectors = listOf(version, "$version-$loader")
-            val allowed = setOf("1.20.1", "1.21.1", "26.1", "26.2", "26.3")
+            val allowed = setOf("1.19.2", "1.20.1", "1.21.1", "26.1", "26.2", "26.3")
                 .flatMap { listOf(it, "$it-fabric", "$it-forge", "$it-neoforge") }.toSet()
             metadata["exclude"]?.asJsonArray?.forEach { require(it.asString in allowed) { "Unknown target selector $it" } }
             for (name in listOf("overrides", "native")) metadata[name]?.asJsonObject?.keySet()?.forEach {
@@ -128,6 +105,10 @@ internal class DataCompiler(private val version: String, private val loader: Str
                 json.add("ingredients", JsonArray().also { out -> ingredients.forEach { out.add(ingredient(it)) } })
             }
             else -> json.add("ingredient", ingredient(json["ingredient"] ?: error("Missing ingredient")))
+        }
+        if (version == "1.19.2") {
+            json.remove("category")
+            json.remove("show_notification")
         }
         val result = json.getAsJsonObject("result") ?: error("Result must be an item stack object")
         fields(result, setOf("id", "count"))
