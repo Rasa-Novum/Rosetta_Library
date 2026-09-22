@@ -33,4 +33,11 @@ public final class ResourceCompat {
         return manager.open(location);
         //?}
     }
+    public static String blockTagDirectory() {
+        //? if <1.21 {
+        /*return "tags/blocks";
+        *///?} else {
+        return "tags/block";
+        //?}
+    }
 }

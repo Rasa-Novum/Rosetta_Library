@@ -26,7 +26,7 @@ class RosettaStonecutterPlugin : Plugin<Project> {
             project.afterEvaluate {
                 controller.parameters {
                     val selected = options.profiles.get()
-                    require(selected.all { it in setOf("common", "legacyGui", "legacy1182", "legacy1192Registries", "widgets", "rendering", "renderingMethods", "clientAnnotations") }) {
+                    require(selected.all { it in setOf("common", "legacyGui", "legacy1182", "legacy1192Registries", "widgets", "rendering", "renderingMethods", "clientAnnotations", "vanillaPackages", "guiMethods") }) {
                         "Unknown Rosetta Stonecutter profile: $selected"
                     }
                     if ("common" in selected) common()
@@ -42,6 +42,8 @@ class RosettaStonecutterPlugin : Plugin<Project> {
                         if ("renderingMethods" in selected) renderingMethods()
                     }
                     if ("clientAnnotations" in selected) clientAnnotations()
+                    if ("vanillaPackages" in selected) vanillaPackages()
+                    if ("guiMethods" in selected) guiMethods()
                 }
             }
         }
@@ -189,4 +191,29 @@ private fun StonecutterBuildExtension.legacy1182() {
     ).forEach { (modern, legacy) ->
         replacements.string { direction.set(true); replace(modern, legacy) }
     }
+}
+
+/** Pure package moves, deliberately separate from mod-specific integration packages. */
+private fun StonecutterBuildExtension.vanillaPackages() {
+    rename("26.1", "net.minecraft.client.renderer.RenderType", "net.minecraft.client.renderer.rendertype.RenderType")
+    rename("26.1", "import net.minecraft.Util;", "import net.minecraft.util.Util;")
+}
+
+/** Opt-in GUI overrides and superclass calls; never rename arbitrary render methods. */
+private fun StonecutterBuildExtension.guiMethods() {
+    val modern = eval(node.metadata.version, ">=26.1")
+    mapOf("render" to "extractRenderState", "renderBackground" to "extractBackground").forEach { (old, new) ->
+        replacements.regex {
+            direction.set(modern)
+            replace("\\bpublic void $old(?=\\(GuiGraphics(?:Extractor)? )", "public void $new",
+                    "\\bpublic void $new(?=\\(GuiGraphics(?:Extractor)? )", "public void $old")
+        }
+    }
+    mapOf(
+        "super.render(guiGraphics," to "super.extractRenderState(guiGraphics,",
+        "renderBackground(guiGraphics, mouseX, mouseY, partialTick)" to "extractBackground(guiGraphics, mouseX, mouseY, partialTick)",
+        "renderBackground(guiGraphics, mouseX, mouseY, partialTicks)" to "extractBackground(guiGraphics, mouseX, mouseY, partialTicks)",
+        "renderTransparentBackground(guiGraphics)" to "extractTransparentBackground(guiGraphics)",
+        "renderBlurredBackground(partialTicks)" to "extractBlurredBackground(guiGraphics)"
+    ).forEach { (old, new) -> rename("26.1", old, new) }
 }

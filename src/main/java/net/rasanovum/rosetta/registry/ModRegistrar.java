@@ -210,7 +210,17 @@ public final class ModRegistrar {
             //? if >=26.1 && fabric {
             /*for (FabricRegistration<?> registration : fabricRegistrations) registration.register();
             for (CreativeTabEntries entries : creativeTabs.values()) {
-                CreativeModeTabEvents.modifyOutputEvent(entries.tab).register(output -> entries.accept(output::accept));
+                CreativeModeTabEvents.modifyOutputEvent(entries.tab).register(output -> entries.accept(new CreativeTabOutput() {
+                    @Override
+                    public void accept(ItemStack stack) {
+                        output.accept(stack);
+                    }
+
+                    @Override
+                    public void insertAfter(ItemLike after, ItemLike item) {
+                        output.insertAfter(after, item);
+                    }
+                }));
             }
             *///?} else if fabric {
             for (FabricRegistration<?> registration : fabricRegistrations) registration.register();
@@ -218,7 +228,17 @@ public final class ModRegistrar {
                 //? if <1.19.3 {
                 /*LegacyCreativeTabHooks.register(entries.tab, entries::accept);
                 *///?} else {
-                ItemGroupEvents.modifyEntriesEvent(entries.tab).register(output -> entries.accept(output::accept));
+                ItemGroupEvents.modifyEntriesEvent(entries.tab).register(output -> entries.accept(new CreativeTabOutput() {
+                    @Override
+                    public void accept(ItemStack stack) {
+                        output.accept(stack);
+                    }
+
+                    @Override
+                    public void insertAfter(ItemLike after, ItemLike item) {
+                        output.addAfter(after, item);
+                    }
+                }));
                 //?}
             }
             //?} else {
@@ -268,7 +288,22 @@ public final class ModRegistrar {
     //? if >=1.19.3 && (forge || neoforge) {
     /*private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         CreativeTabEntries entries = creativeTabs.get(event.getTabKey());
-        if (entries != null) entries.accept(event::accept);
+        if (entries != null) entries.accept(new CreativeTabOutput() {
+            @Override
+            public void accept(ItemStack stack) {
+                event.accept(stack);
+            }
+
+            //? if neoforge {
+            /^@Override
+            public void insertAfter(ItemLike after, ItemLike item) {
+                event.insertAfter(
+                        after.asItem().getDefaultInstance(),
+                        item.asItem().getDefaultInstance(),
+                        CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+            }
+            ^///?}
+        });
     }
     *///?}
 
@@ -335,6 +370,18 @@ public final class ModRegistrar {
             return add(entry.item());
         }
 
+        /** Add a registered item immediately after an existing item where the loader supports ordering. */
+        public CreativeTabEntries addAfter(ItemLike after, RegistryHandle<? extends ItemLike> handle) {
+            requireCreativeDeclaring(tab);
+            Objects.requireNonNull(after, "after");
+            Objects.requireNonNull(handle, "handle");
+            if (!handles.add(handle.id())) {
+                throw duplicate("registry handle '" + handle.id() + "'");
+            }
+            callbacks.add(output -> output.insertAfter(after, handle.get()));
+            return this;
+        }
+
         public CreativeTabEntries add(ItemLike item) {
             requireCreativeDeclaring(tab);
             Objects.requireNonNull(item, "item");
@@ -381,6 +428,10 @@ public final class ModRegistrar {
 
         default void accept(ItemLike item) {
             accept(new ItemStack(item));
+        }
+
+        default void insertAfter(ItemLike after, ItemLike item) {
+            accept(item);
         }
     }
 

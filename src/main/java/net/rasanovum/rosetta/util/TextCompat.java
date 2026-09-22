@@ -1,6 +1,7 @@
 package net.rasanovum.rosetta.util;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
 //? if <1.19 {
 /*import net.minecraft.network.chat.TranslatableComponent;
 *///?} else {
@@ -17,6 +18,13 @@ public final class TextCompat {
         /*return component instanceof TranslatableComponent text ? text.getKey() : null;
         *///?} else {
         return component.getContents() instanceof TranslatableContents text ? text.getKey() : null;
+        //?}
+    }
+    public static HoverEvent showText(Component text) {
+        //? if >=26.1 {
+        /*return new HoverEvent.ShowText(text);
+        *///?} else {
+        return new HoverEvent(HoverEvent.Action.SHOW_TEXT, text);
         //?}
     }
 }

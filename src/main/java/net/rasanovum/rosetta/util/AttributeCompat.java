@@ -93,4 +93,11 @@ public final class AttributeCompat {
         return UUID.nameUUIDFromBytes(modifierKey.getBytes(StandardCharsets.UTF_8));
     }
     *///?}
+    public static double amount(AttributeModifier modifier) {
+        //? if >=1.21 {
+        return modifier.amount();
+        //?} else {
+        /*return modifier.getAmount();
+        *///?}
+    }
 }

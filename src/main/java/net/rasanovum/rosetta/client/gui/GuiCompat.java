@@ -510,4 +510,21 @@ public class GuiCompat {
         setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
         disableBlend();
     }
+    /** Presents a tooltip after the screen contents on legacy Forge. */
+    public static void scheduleTooltip(GuiGraphics graphics, Font font, Component tooltip, int x, int y) {
+        //? if forge && <1.20 {
+        /*net.rasanovum.rosetta.client.gui.legacy.LegacyTooltips.schedule(tooltip, x, y);
+        *///?} else {
+        renderTooltip(graphics, font, tooltip, x, y);
+        //?}
+    }
+
+    public static void renderWidget(net.minecraft.client.gui.components.AbstractWidget widget,
+                                    GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        //? if >=26.1 {
+        /*widget.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        *///?} else {
+        widget.render(graphics, mouseX, mouseY, partialTick);
+        //?}
+    }
 }
