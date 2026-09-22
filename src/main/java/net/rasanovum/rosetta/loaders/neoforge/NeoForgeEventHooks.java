@@ -16,6 +16,7 @@ import net.neoforged.neoforge.event.level.BlockEvent;
 //?}
 import net.neoforged.neoforge.event.level.ChunkWatchEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.rasanovum.rosetta.event.ServerHooks;
@@ -45,6 +46,11 @@ public final class NeoForgeEventHooks {
     public static void serverStarting(ServerStartingEvent event) {
         server = event.getServer();
         ServerHooks.serverStarting(server);
+    }
+
+    @SubscribeEvent
+    public static void serverStarted(ServerStartedEvent event) {
+        ServerHooks.serverStarted(event.getServer());
     }
 
     @SubscribeEvent

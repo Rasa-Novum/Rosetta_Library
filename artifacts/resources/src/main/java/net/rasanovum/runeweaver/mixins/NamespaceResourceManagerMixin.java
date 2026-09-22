@@ -18,11 +18,26 @@ import java.util.Optional;
 public class NamespaceResourceManagerMixin {
 
 
+    //? if <1.19 {
+    /*@ModifyReturnValue(method = "getResources", at = @At("RETURN"))
+    *///?} else {
     @ModifyReturnValue(method = "getResourceStack", at = @At("RETURN"))
+    //?}
     private List<Resource> runRuneweaverEvents(List<Resource> original, @Local(argsOnly = true) Identifier id) {
         return Runeweaver.processHook(new NamespaceHook(original, id));
     }
 
+    //? if <1.19 {
+    /*@ModifyReturnValue(method = "getResource", at = @At("RETURN"))
+    private Resource runLegacyRuneweaverEvents(Resource original, Identifier id) throws java.io.IOException {
+        List<Resource> result = Runeweaver.processHook(new NamespaceHook(new ArrayList<>(List.of(original)), id));
+        if (result.isEmpty()) {
+            original.close();
+            throw new java.io.FileNotFoundException(id.toString());
+        }
+        return result.get(0);
+    }
+    *///?} else {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @ModifyReturnValue(method = "getResource", at = @At("RETURN"))
     private Optional<Resource> runRuneweaverEvents(Optional<Resource> original, Identifier id) {
@@ -30,4 +45,5 @@ public class NamespaceResourceManagerMixin {
         List<Resource> result = Runeweaver.processHook(new NamespaceHook(new ArrayList<>(List.of(original.get())), id));
         return Optional.ofNullable(result.get(0));
     }
+    //?}
 }

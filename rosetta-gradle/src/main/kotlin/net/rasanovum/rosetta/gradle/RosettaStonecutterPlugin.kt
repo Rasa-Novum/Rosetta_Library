@@ -7,7 +7,7 @@ import org.gradle.api.Project
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.SetProperty
 
-private val legacyWidgetTypes = setOf("Button", "AbstractButton", "AbstractWidget", "Tooltip")
+private val legacyWidgetTypes = setOf("Button", "AbstractButton", "AbstractWidget", "Tooltip", "EditBox", "TextAndImageButton", "MultiLineTextWidget")
 
 abstract class RosettaStonecutterExtension {
     abstract val profiles: SetProperty<String>
@@ -26,10 +26,11 @@ class RosettaStonecutterPlugin : Plugin<Project> {
             project.afterEvaluate {
                 controller.parameters {
                     val selected = options.profiles.get()
-                    require(selected.all { it in setOf("common", "legacyGui", "legacy1192Registries", "widgets", "rendering", "renderingMethods", "clientAnnotations") }) {
+                    require(selected.all { it in setOf("common", "legacyGui", "legacy1182", "legacy1192Registries", "widgets", "rendering", "renderingMethods", "clientAnnotations") }) {
                         "Unknown Rosetta Stonecutter profile: $selected"
                     }
                     if ("common" in selected) common()
+                    if ("legacy1182" in selected && "common" !in selected) legacy1182()
                     if ("widgets" in selected) widgets(options)
                     if ("legacyGui" in selected && "common" !in selected) legacyGui()
                     if ("legacy1192Registries" in selected) legacy1192Registries()
@@ -54,6 +55,7 @@ private fun StonecutterBuildExtension.rename(version: String, old: String, new: 
 private fun StonecutterBuildExtension.common() {
     constants.match(node.metadata.project.substringAfterLast('-'), "fabric", "forge", "neoforge")
     legacyGui()
+    legacy1182()
     val modern = eval(node.metadata.version, ">=26.1")
     constants.put("mc_26", modern)
     rename("26.1", "ResourceLocation", "Identifier")
@@ -160,5 +162,31 @@ private fun StonecutterBuildExtension.legacyGui() {
             replace("\\bGuiGraphics\\b", "PoseStack", "\\bPoseStack\\b", "GuiGraphics")
         }
         replacements.string { direction.set(true); replace("getGuiGraphics()", "getPoseStack()") }
+    }
+}
+
+private fun StonecutterBuildExtension.legacy1182() {
+    if (!eval(node.metadata.version, "<1.19")) return
+    mapOf("literal" to "TextComponent", "translatable" to "TranslatableComponent").forEach { (factory, type) ->
+        replacements.regex {
+            direction.set(true)
+            replace("\\b(?:net\\.minecraft\\.network\\.chat\\.)?Component\\.$factory\\(", "new net.minecraft.network.chat.$type(", "(?!)", "")
+        }
+    }
+    replacements.regex {
+        direction.set(true)
+        replace("\\b(?:net\\.minecraft\\.network\\.chat\\.)?Component\\.empty\\(\\)", "new net.minecraft.network.chat.TextComponent(\"\")", "(?!)", "")
+    }
+    mapOf(
+        "net.minecraftforge.event.level." to "net.minecraftforge.event.world.",
+        "TickEvent.LevelTickEvent" to "TickEvent.WorldTickEvent",
+        "ScreenEvent.Render." to "ScreenEvent.DrawScreenEvent.",
+        "ConfigScreenHandler" to "ConfigGuiHandler",
+        "ConfigScreenFactory" to "ConfigGuiFactory",
+        "RenderGuiEvent" to "RenderGameOverlayEvent",
+        "ClientPlayerNetworkEvent.LoggingIn" to "ClientPlayerNetworkEvent.LoggedInEvent",
+        "ClientPlayerNetworkEvent.LoggingOut" to "ClientPlayerNetworkEvent.LoggedOutEvent"
+    ).forEach { (modern, legacy) ->
+        replacements.string { direction.set(true); replace(modern, legacy) }
     }
 }

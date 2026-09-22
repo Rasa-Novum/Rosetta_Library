@@ -7,7 +7,7 @@ repositories { maven("https://api.modrinth.com/maven") }
 val loader = project.name.substringAfterLast('-')
 val minecraft = property("deps.minecraft").toString()
 val midnightVersion = property("deps.midnightlib").toString()
-val midnight = if (minecraft == "1.19.2" && loader == "forge") {
+val midnight = if (minecraft in setOf("1.18.2", "1.19.2") && loader == "forge") {
     "eu.midnightdust:midnightlib-forge:$midnightVersion"
 } else {
     "maven.modrinth:midnightlib:$midnightVersion"

@@ -1,5 +1,6 @@
 package net.rasanovum.runeweaver.mixins;
 
+//? if >=1.19 {
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.MultiPackResourceManager;
@@ -27,3 +28,5 @@ public class ResourceManagerImplMixinArray {
         return Runeweaver.processHook(new ListHook(original));
     }
 }
+
+//?}

@@ -191,7 +191,7 @@ public final class ConfigSync {
                 decoded.forEach(ConfigSync::set);
                 MidnightConfig.write(modId);
             } catch (RuntimeException error) {
-                sender.sendSystemMessage(Component.literal(modId + " config update rejected: " + error.getMessage()));
+                EntityCompat.displayClientMessage(sender, Component.literal(modId + " config update rejected: " + error.getMessage()), false);
                 sync(modId, sender);
             }
         }

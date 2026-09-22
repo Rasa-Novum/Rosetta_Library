@@ -24,6 +24,34 @@ public class GuiCompat {
     private GuiCompat() {}
 
     //? if <1.20 {
+    /*public static void confirmLink(String url) {
+        Minecraft minecraft = Minecraft.getInstance();
+        var parent = minecraft.screen;
+        minecraft.setScreen(new net.minecraft.client.gui.screens.ConfirmLinkScreen(confirmed -> {
+            if (confirmed) net.minecraft.Util.getPlatform().openUri(url);
+            minecraft.setScreen(parent);
+        }, url, true));
+    }
+
+    public static void renderItem(GuiGraphics graphics, net.minecraft.world.item.ItemStack stack, int x, int y) {
+        Minecraft.getInstance().getItemRenderer().renderAndDecorateItem(stack, x, y);
+    }
+    *///?}
+
+    /** Moves a vanilla screen control without requiring a Rosetta widget subclass. */
+    public static void moveWidget(net.minecraft.client.gui.screens.Screen screen, Component message, int y) {
+        for (var child : screen.children()) {
+            if (child instanceof AbstractWidget widget && widget.getMessage().equals(message)) {
+                //? if <1.20 {
+                /*widget.y = y;
+                *///?} else {
+                widget.setY(y);
+                //?}
+            }
+        }
+    }
+
+    //? if <1.20 {
     /*private static final java.util.Deque<int[]> SCISSORS = new java.util.ArrayDeque<>();
 
     private static class LegacyGradient extends net.minecraft.client.gui.GuiComponent {
@@ -339,7 +367,7 @@ public class GuiCompat {
     }
 
     public static Style firstHoverStyle(Component component) {
-        for (Component sibling : component.toFlatList()) {
+        for (Component sibling : component.toFlatList(net.minecraft.network.chat.Style.EMPTY)) {
             Style style = sibling.getStyle();
             if (style.getHoverEvent() != null) return style;
         }

@@ -148,6 +148,8 @@ abstract class GenerateRosettaShaders : DefaultTask() {
     vec3 ModelOffset;
 };""")
                 }
+            } else if (minecraftVersion.get() == "1.18.2") {
+                text = expandIncludes(root, file, linkedSetOf(), false)
             } else if (path in legacyImports.get() && legacyImportNamespace.get().isNotEmpty()) {
                 text = text.replace("#moj_import \"", "#moj_import \"${legacyImportNamespace.get()}:")
             }
@@ -174,7 +176,7 @@ abstract class GenerateRosettaShaders : DefaultTask() {
         return file
     }
 
-    private fun expandIncludes(root: File, file: File, stack: MutableSet<File>): String {
+    private fun expandIncludes(root: File, file: File, stack: MutableSet<File>, modernImports: Boolean = true): String {
         require(stack.add(file)) { "Cyclic shader include: $file" }
         try {
             return file.readText().replace("\r\n", "\n").lineSequence().joinToString("\n") { line ->
@@ -183,9 +185,9 @@ abstract class GenerateRosettaShaders : DefaultTask() {
                     local != null -> {
                         val include = file.parentFile.resolve(local.groupValues[1]).canonicalFile
                         require(include.toPath().startsWith(root.toPath())) { "Shader include escapes resource directory: $include" }
-                        expandIncludes(root, include, stack).trimEnd('\n')
+                        expandIncludes(root, include, stack, modernImports).trimEnd('\n')
                     }
-                    line.startsWith("#moj_import <") -> line.replace("#moj_import", "#include")
+                    modernImports && line.startsWith("#moj_import <") -> line.replace("#moj_import", "#include")
                     else -> line
                 }
             }

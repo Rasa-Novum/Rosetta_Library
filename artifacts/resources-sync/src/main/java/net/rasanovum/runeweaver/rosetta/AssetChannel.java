@@ -3,7 +3,7 @@ package net.rasanovum.runeweaver.rosetta;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.packs.resources.Resource;
+import net.rasanovum.rosetta.util.ResourceCompat;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.rasanovum.rosetta.network.RosettaNetwork;
 
@@ -80,16 +80,15 @@ public final class AssetChannel {
     }
 
     private List<AssetSnapshotS2C.Asset> load(ResourceManager manager) {
-        Map<Identifier, Resource> resources = manager.listResources(folder,
+        List<Identifier> resources = ResourceCompat.list(manager, folder,
                 location -> location.getPath().endsWith(extension));
         List<AssetSnapshotS2C.Asset> assets = new ArrayList<>(resources.size());
         long totalBytes = 0;
-        for (Map.Entry<Identifier, Resource> entry : resources.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey()).toList()) {
+        for (Identifier location : resources.stream().sorted().toList()) {
             if (assets.size() >= maxAssets) break;
-            byte[] bytes = readLimited(entry.getValue(), maxAssetBytes);
+            byte[] bytes = readLimited(manager, location, maxAssetBytes);
             if (totalBytes + bytes.length > maxTotalBytes) break;
-            assets.add(new AssetSnapshotS2C.Asset(entry.getKey(), bytes));
+            assets.add(new AssetSnapshotS2C.Asset(location, bytes));
             totalBytes += bytes.length;
         }
         return List.copyOf(assets);
@@ -102,8 +101,8 @@ public final class AssetChannel {
         }
     }
 
-    private static byte[] readLimited(Resource resource, int maximum) {
-        try (InputStream input = resource.open(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+    private static byte[] readLimited(ResourceManager manager, Identifier location, int maximum) {
+        try (InputStream input = ResourceCompat.open(manager, location); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             input.transferTo(new LimitedOutputStream(output, maximum));
             return output.toByteArray();
         } catch (IOException exception) {

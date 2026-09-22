@@ -3,6 +3,7 @@ package net.rasanovum.rosetta.util;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
 import net.minecraft.client.Camera;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -14,6 +15,30 @@ import net.minecraft.world.entity.player.Player;
 /** Client-side helpers. */
 public final class ClientCompat {
     private ClientCompat() {}
+
+    public static boolean autoJump(Options options) {
+        //? if <1.19 {
+        /*return options.autoJump;
+        *///?} else {
+        return options.autoJump().get();
+        //?}
+    }
+
+    public static void setAutoJump(Options options, boolean enabled) {
+        //? if <1.19 {
+        /*options.autoJump = enabled;
+        *///?} else {
+        options.autoJump().set(enabled);
+        //?}
+    }
+
+    public static float fovEffectScale(Options options) {
+        //? if <1.19 {
+        /*return (float) options.fovEffectScale;
+        *///?} else {
+        return options.fovEffectScale().get().floatValue();
+        //?}
+    }
 
     public static Screen screen(Minecraft minecraft) {
         //? if >=26.2 {
@@ -48,7 +73,11 @@ public final class ClientCompat {
     }
 
     public static ResourceLocation getPlayerSkin(Minecraft minecraft, Player player) {
-        //? if <1.21 {
+        //? if <1.19 {
+        /*return player instanceof AbstractClientPlayer clientPlayer
+                ? clientPlayer.getSkinTextureLocation()
+                : net.minecraft.client.resources.DefaultPlayerSkin.getDefaultSkin(player.getUUID());
+        *///?} else if <1.21 {
         /*return minecraft.getSkinManager().getInsecureSkinLocation(player.getGameProfile());
         *///?} else {
         //? if >=26.1 {

@@ -5,6 +5,7 @@
   "package": "net.rasanovum.rosetta.mixin.client",
   "compatibilityLevel": "${mixin_compatibility}",
   "client": [
+    "LegacyClientShutdownMixin",
     "LegacyCreativeTabMixin",
     "PictureInPictureRendererAccessor"
   ],

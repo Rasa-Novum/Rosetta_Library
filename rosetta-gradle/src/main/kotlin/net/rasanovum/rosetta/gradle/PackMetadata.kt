@@ -9,6 +9,7 @@ object PackMetadata {
 
     internal fun forTarget(version: String, loader: String, kind: String): JsonObject {
         val formats = when (version) {
+            "1.18.2" -> 9 to 8
             "1.19.2" -> 10 to 9
             "1.20.1" -> 15 to 15
             "1.21.1" -> 48 to 34
@@ -26,14 +27,14 @@ object PackMetadata {
             pack.add("max_format", if (kind == "resources") format(formats.second, resourceMinor) else format(formats.first, dataMinor))
         } else {
             pack.addProperty("pack_format", if (kind == "resources") formats.second else formats.first)
-            if (kind == "combined" && formats.first != formats.second && version != "1.19.2") {
+            if (kind == "combined" && formats.first != formats.second && version !in setOf("1.18.2", "1.19.2")) {
                 pack.add("supported_formats", JsonObject().also {
                     it.addProperty("min_inclusive", formats.second)
                     it.addProperty("max_inclusive", formats.first)
                 })
             }
         }
-        if (version == "1.19.2" && loader == "forge") {
+        if (version in setOf("1.18.2", "1.19.2") && loader == "forge") {
             pack.addProperty("forge:resource_pack_format", formats.second)
             pack.addProperty("forge:data_pack_format", formats.first)
         }

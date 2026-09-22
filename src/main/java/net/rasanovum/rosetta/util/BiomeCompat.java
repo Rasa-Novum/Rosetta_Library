@@ -18,7 +18,10 @@ import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.core.BlockPos;
 
 import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraft.world.level.biome.BiomeSource;
+//? if >=1.19
 import net.minecraft.world.level.levelgen.RandomState;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +30,23 @@ import java.util.Optional;
 public final class BiomeCompat {
     private BiomeCompat() {}
 
+    public static NoiseGeneratorSettings generatorSettings(NoiseBasedChunkGenerator generator) {
+        //? if <1.19 {
+        /*return ((net.rasanovum.rosetta.mixin.LegacyNoiseGeneratorAccessor) generator).rosetta$settings().value();
+        *///?} else {
+        return generator.generatorSettings().value();
+        //?}
+    }
+
+    public static Climate.Sampler climateSampler(ServerLevel level) {
+        //? if <1.19 {
+        /*return level.getChunkSource().getGenerator().climateSampler();
+        *///?} else {
+        return climateSampler(level.getChunkSource().randomState());
+        //?}
+    }
+
+    //? if >=1.19 {
     public static Climate.Sampler climateSampler(RandomState state) {
         //? if >=26.3 {
         /*return state.createClimateSampler(net.minecraft.world.level.levelgen.densityfunction.SamplerContext.EMPTY_UNCACHED);
@@ -34,6 +54,8 @@ public final class BiomeCompat {
         return state.sampler();
         //?}
     }
+
+    //?}
 
     @FunctionalInterface
     public interface Sampler {

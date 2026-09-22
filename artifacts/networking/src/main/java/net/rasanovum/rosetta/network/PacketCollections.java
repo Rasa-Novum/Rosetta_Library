@@ -11,6 +11,15 @@ import java.util.function.Function;
 public final class PacketCollections {
     private PacketCollections() {}
 
+    public static <T> void writeNullable(FriendlyByteBuf buffer, T value, BiConsumer<FriendlyByteBuf, T> writer) {
+        buffer.writeBoolean(value != null);
+        if (value != null) writer.accept(buffer, value);
+    }
+
+    public static <T> T readNullable(FriendlyByteBuf buffer, Function<FriendlyByteBuf, T> reader) {
+        return buffer.readBoolean() ? reader.apply(buffer) : null;
+    }
+
     public static <T> void write(FriendlyByteBuf buffer, Collection<T> values, BiConsumer<FriendlyByteBuf, T> writer) {
         buffer.writeVarInt(values.size());
         for (T value : values) writer.accept(buffer, value);

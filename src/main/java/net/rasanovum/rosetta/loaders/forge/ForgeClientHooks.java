@@ -7,6 +7,7 @@ import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.common.MinecraftForge;
+//? if >=1.19
 import net.minecraftforge.event.GameShuttingDownEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -27,6 +28,7 @@ public final class ForgeClientHooks {
         MinecraftForge.EVENT_BUS.addListener(ForgeClientHooks::playerLogin);
         MinecraftForge.EVENT_BUS.addListener(ForgeClientHooks::playerLogout);
         MinecraftForge.EVENT_BUS.addListener(ForgeClientHooks::clientTick);
+        //? if >=1.19
         MinecraftForge.EVENT_BUS.addListener(ForgeClientHooks::gameStopping);
         MinecraftForge.EVENT_BUS.addListener(ForgeClientHooks::renderHud);
         MinecraftForge.EVENT_BUS.addListener(ForgeClientHooks::renderWorld);
@@ -37,9 +39,16 @@ public final class ForgeClientHooks {
     private static void clientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END) ClientHooks.endClientTick();
     }
+    //? if >=1.19
     private static void gameStopping(GameShuttingDownEvent event) { ClientHooks.clientStopping(); }
     private static void renderHud(RenderGuiEvent.Post event) {
+        //? if <1.19
+        if (event.getType() != net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType.ALL) return;
+        //? if <1.19 {
+        ClientRenderHooks.renderHud(event.getMatrixStack(), event.getPartialTicks());
+        //?} else {
         ClientRenderHooks.renderHud(event.getGuiGraphics(), Minecraft.getInstance().getFrameTime());
+        //?}
     }
     private static void renderWorld(RenderLevelStageEvent event) {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_PARTICLES) {

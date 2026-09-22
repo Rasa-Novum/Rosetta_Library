@@ -4,7 +4,7 @@ import com.google.gson.*
 
 /** Converts supported vanilla 1.21.1 JSON into each supported pack format. */
 internal class DataCompiler(private val version: String, private val loader: String) {
-    private val legacy = version in setOf("1.19.2", "1.20.1")
+    private val legacy = version in setOf("1.18.2", "1.19.2", "1.20.1")
     private val modern = version.startsWith("26.")
     private val hint = "; use a complete target-specific \$rosetta.native definition for unsupported formats"
     private val idPattern = Regex("[a-z0-9_.-]+:[a-z0-9/._-]+")
@@ -29,7 +29,7 @@ internal class DataCompiler(private val version: String, private val loader: Str
         if (metadata != null) {
             fields(metadata, setOf("overrides", "native", "exclude"))
             val selectors = listOf(version, "$version-$loader")
-            val allowed = setOf("1.19.2", "1.20.1", "1.21.1", "26.1", "26.2", "26.3")
+            val allowed = setOf("1.18.2", "1.19.2", "1.20.1", "1.21.1", "26.1", "26.2", "26.3")
                 .flatMap { listOf(it, "$it-fabric", "$it-forge", "$it-neoforge") }.toSet()
             metadata["exclude"]?.asJsonArray?.forEach { require(it.asString in allowed) { "Unknown target selector $it" } }
             for (name in listOf("overrides", "native")) metadata[name]?.asJsonObject?.keySet()?.forEach {
@@ -106,7 +106,7 @@ internal class DataCompiler(private val version: String, private val loader: Str
             }
             else -> json.add("ingredient", ingredient(json["ingredient"] ?: error("Missing ingredient")))
         }
-        if (version == "1.19.2") {
+        if (version in setOf("1.18.2", "1.19.2")) {
             json.remove("category")
             json.remove("show_notification")
         }

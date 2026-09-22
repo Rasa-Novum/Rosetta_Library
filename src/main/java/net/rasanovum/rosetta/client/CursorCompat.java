@@ -26,7 +26,11 @@ public final class CursorCompat {
         }
         *///?} else {
         try (MemoryStack stack = MemoryStack.stackPush()) {
+            //? if <1.19 {
+            /*GLFWImage image = GLFWImage.mallocStack(stack).width(width).height(height).pixels(pixels);
+            *///?} else {
             GLFWImage image = GLFWImage.malloc(stack).width(width).height(height).pixels(pixels);
+            //?}
             return GLFW.glfwCreateCursor(image, hotspotX, hotspotY);
         }
         //?}

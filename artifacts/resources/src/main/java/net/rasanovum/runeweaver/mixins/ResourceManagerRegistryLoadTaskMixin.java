@@ -1,5 +1,6 @@
 package net.rasanovum.runeweaver.mixins;
 
+//? if >=1.19 {
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 //? if >=1.19.3
@@ -46,3 +47,5 @@ public class ResourceManagerRegistryLoadTaskMixin {
     }
     //?}
 }
+
+//?}

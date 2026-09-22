@@ -38,14 +38,20 @@ public final class ForgeNetworkBackend implements NetworkBackend {
         state.channel.messageBuilder(definition.type(), state.discriminator.getAndIncrement(), direction)
                 .encoder(definition.writer())
                 .decoder(definition.reader())
-                .consumerMainThread((packet, contextSupplier) -> {
+                //? if <1.19 {
+                .consumer((packet, contextSupplier) -> {
+                //?} else {
+                .consumerNetworkThread((packet, contextSupplier) -> {
+                //?}
                     var context = contextSupplier.get();
-                    if (direction == NetworkDirection.PLAY_TO_SERVER) {
-                        ServerPlayer sender = context.getSender();
-                        if (sender != null) definition.handler().handle(packet, net.rasanovum.rosetta.util.EntityCompat.getPlayerServerLevel(sender), sender);
-                    } else {
-                        Client.handle(packet, definition);
-                    }
+                    context.enqueueWork(() -> {
+                        if (direction == NetworkDirection.PLAY_TO_SERVER) {
+                            ServerPlayer sender = context.getSender();
+                            if (sender != null) definition.handler().handle(packet, net.rasanovum.rosetta.util.EntityCompat.getPlayerServerLevel(sender), sender);
+                        } else {
+                            Client.handle(packet, definition);
+                        }
+                    });
                     context.setPacketHandled(true);
                 })
                 .add();

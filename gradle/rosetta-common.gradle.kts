@@ -39,17 +39,31 @@ if (loader != "fabric" && module in setOf("core", "config")) {
     tasks.named<Jar>("jar") { exclude("net/rasanovum/rosetta/loaders/fabric/mixin/**") }
 }
 tasks.named<ProcessResources>("processResources") {
+    if (loader != "forge" || prop("deps.minecraft") != "1.18.2") exclude("rosetta-legacy.mixins.json")
     if (prop("deps.minecraft") != "26.3") {
         filesMatching("rosetta-client.mixins.json") {
             filter { line: String -> line.takeUnless { it.contains("PictureInPictureRendererAccessor") } }
         }
     }
+    inputs.property("legacyResourceHooks", prop("deps.minecraft") == "1.18.2")
+    if (prop("deps.minecraft") == "1.18.2") {
+        filesMatching(listOf("runeweaver.mixins.json", "runeweaver.forge.mixins.json")) {
+            filter { line: String ->
+                when {
+                    line.contains("ResourceManagerImplMixinArray") || line.contains("ResourceManagerRegistryLoadTaskMixin") -> null
+                    line.contains("NamespaceResourceManagerMixin") -> line.replace("\",", "\"")
+                    else -> line
+                }
+            }
+        }
+    }
     filesMatching("rosetta-client.mixins.json") {
         filter { line: String ->
             when {
-                line.contains("LegacyCreativeTabMixin") && prop("deps.minecraft") != "1.19.2" -> null
+                line.contains("LegacyClientShutdownMixin") && (loader != "forge" || prop("deps.minecraft") != "1.18.2") -> null
+                line.contains("LegacyCreativeTabMixin") && prop("deps.minecraft") !in setOf("1.18.2", "1.19.2") -> null
                 line.contains("LegacyCreativeTabMixin") -> line.replace("\",", "\"")
-                line.contains("rosetta.refmap.json") && (loader != "forge" || prop("deps.minecraft") != "1.19.2") -> null
+                line.contains("rosetta.refmap.json") && (loader != "forge" || prop("deps.minecraft") !in setOf("1.18.2", "1.19.2")) -> null
                 else -> line
             }
         }
