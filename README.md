@@ -10,6 +10,8 @@ Compatibility helpers for Minecraft mods built across Fabric, Forge, and NeoForg
 
 | Minecraft | Loaders |
 | --- | --- |
+| 1.18.2 | Forge |
+| 1.19.2 | Forge |
 | 26.3 | Fabric, NeoForge |
 | 26.2 | Fabric, NeoForge |
 | 26.1–26.1.2 | Fabric, NeoForge |

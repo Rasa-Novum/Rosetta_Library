@@ -13,6 +13,8 @@ plugins {
 stonecutter.active("1.21.1-fabric")
 
 val releaseTargets = listOf(
+    "1.18.2-forge",
+    "1.19.2-forge",
     "26.3-fabric",
     "26.3-neoforge",
     "1.20.1-fabric",

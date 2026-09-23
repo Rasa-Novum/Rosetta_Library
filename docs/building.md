@@ -26,7 +26,7 @@ Run commands from the repository root with the Gradle wrapper.
 | `buildResourcesArtifacts` | `build/release-resources` |
 | `buildResourcesSyncArtifacts` | `build/release-resources-sync` |
 
-`publishMavenArtifacts` writes to `build/maven-repository`. The Gradle plugin build has its own local repository at `rosetta-gradle/build/maven-repository`, populated with `-p rosetta-gradle publish`.
+`publishMavenArtifacts` writes all targets to `build/maven-repository`. The Gradle plugin build has its own local repository at `rosetta-gradle/build/maven-repository`, populated with `-p rosetta-gradle publish`.
 
 ## Source layout
 
