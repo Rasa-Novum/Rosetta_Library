@@ -8,7 +8,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
 import net.rasanovum.rosetta.event.*;
 import net.rasanovum.rosetta.loaders.Platform;
 import net.rasanovum.rosetta.network.*;
@@ -36,8 +35,8 @@ public final class ConfigSync {
 
     static void initialize() {
         RosettaNetwork.channel("rosetta_config")
-                .serverbound("edit", Edit.class, Edit::write, Edit::new, Edit::handle)
-                .clientbound("sync", Sync.class, Sync::write, Sync::new, Sync::handle);
+                .serverbound("edit", Edit.class, Edit::new, Edit::handle)
+                .clientbound("sync", Sync.class, Sync::new, Sync::handle);
         ServerHooks.register(new ServerHooks.Callbacks() {
             @Override public void onServerStarting(MinecraftServer active) { server = active; }
             @Override public void onServerStopping(MinecraftServer active) { server = null; }
@@ -170,10 +169,13 @@ public final class ConfigSync {
 
     public record Edit(String modId, String values) implements RosettaPacket {
         public Edit(FriendlyByteBuf buf) { this(buf.readUtf(64), buf.readUtf(MAX_LENGTH)); }
+        @Override
         public void write(FriendlyByteBuf buf) { buf.writeUtf(modId, 64); buf.writeUtf(values, MAX_LENGTH); }
-        public void handle(Level level, Player player) {
+        public static void handle(Edit packet, ServerPlayer sender) {
+            String modId = packet.modId();
+            String values = packet.values();
             MidnightConfig config = MidnightConfig.configInstances.get(modId);
-            if (level.isClientSide() || !(player instanceof ServerPlayer sender) || config == null) return;
+            if (config == null) return;
             if (values.isEmpty()) {
                 sync(modId, sender);
                 return;
@@ -199,8 +201,9 @@ public final class ConfigSync {
 
     public record Sync(String modId, String values, Set<String> editable) implements RosettaPacket {
         public Sync(FriendlyByteBuf buf) { this(buf.readUtf(64), buf.readUtf(MAX_LENGTH), Set.of(JSON.fromJson(buf.readUtf(MAX_LENGTH), String[].class))); }
+        @Override
         public void write(FriendlyByteBuf buf) { buf.writeUtf(modId, 64); buf.writeUtf(values, MAX_LENGTH); buf.writeUtf(JSON.toJson(editable), MAX_LENGTH); }
-        public void handle(Level level, Player player) { if (level.isClientSide()) ClientSync.receive(this); }
+        public static void handle(Sync packet, Player player) { ClientSync.receive(packet); }
     }
 
     public static final class ClientSync extends MidnightConfig {

@@ -3,7 +3,6 @@ package net.rasanovum.runeweaver.rosetta;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
 import net.rasanovum.rosetta.network.RosettaPacket;
 
 import java.util.ArrayList;
@@ -23,6 +22,7 @@ public record AssetSnapshotS2C(Identifier channel, List<Asset> assets) implement
         this(buf.readIdentifier(), readAssets(buf));
     }
 
+    @Override
     public void write(FriendlyByteBuf buf) {
         buf.writeIdentifier(channel);
         buf.writeVarInt(assets.size());
@@ -32,8 +32,8 @@ public record AssetSnapshotS2C(Identifier channel, List<Asset> assets) implement
         }
     }
 
-    public void handle(Level level, Player player) {
-        if (level != null && level.isClientSide()) AssetChannels.handleClientSnapshot(this);
+    public static void handle(AssetSnapshotS2C packet, Player player) {
+        AssetChannels.handleClientSnapshot(packet);
     }
 
     private static List<Asset> readAssets(FriendlyByteBuf buf) {

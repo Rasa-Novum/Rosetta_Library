@@ -61,13 +61,13 @@ public final class NeoForgeNetworkBackend implements NetworkBackend {
             PacketDefinition<T> definition, CustomPacketPayload.Type<T> payloadType, boolean serverbound
     ) {
         private void register(PayloadRegistrar registrar) {
-            var codec = CustomPacketPayload.codec(definition.writer()::accept, definition.reader()::apply);
+            var codec = CustomPacketPayload.codec(RosettaPacket::write, definition.reader()::apply);
             if (serverbound) {
                 registrar.playToServer(payloadType, codec, (packet, context) -> context.enqueueWork(() ->
-                        definition.handler().handle(packet, context.player().level(), context.player())));
+                        definition.serverboundHandler().handle(packet, (ServerPlayer) context.player())));
             } else {
                 registrar.playToClient(payloadType, codec, (packet, context) -> context.enqueueWork(() ->
-                        definition.handler().handle(packet, context.player().level(), context.player())));
+                        definition.clientboundHandler().handle(packet, context.player())));
             }
         }
     }

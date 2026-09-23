@@ -28,18 +28,18 @@ public final class FabricNetworkBackend implements NetworkBackend {
         remember(definition);
         //? if >=1.21 {
         CustomPacketPayload.Type<T> payloadType = new CustomPacketPayload.Type<>(definition.id());
-        var codec = CustomPacketPayload.codec(definition.writer()::accept, definition.reader()::apply);
+        var codec = CustomPacketPayload.codec(RosettaPacket::write, definition.reader()::apply);
         RosettaPacket.registerType(definition.type(), payloadType);
         //? if >=26.1
         /*PayloadTypeRegistry.serverboundPlay().register(payloadType, codec);*/
         //? if <26.1
         PayloadTypeRegistry.playC2S().register(payloadType, codec);
         ServerPlayNetworking.registerGlobalReceiver(payloadType, (packet, context) ->
-                definition.handler().handle(packet, context.player().level(), context.player()));
+                definition.serverboundHandler().handle(packet, context.player()));
         //?} else {
         /*ServerPlayNetworking.registerGlobalReceiver(definition.id(), (server, player, listener, buffer, responseSender) -> {
             T packet = definition.reader().apply(buffer);
-            server.execute(() -> definition.handler().handle(packet, net.rasanovum.rosetta.util.EntityCompat.getPlayerServerLevel(player), player));
+            server.execute(() -> definition.serverboundHandler().handle(packet, player));
         });
         *///?}
     }
@@ -49,7 +49,7 @@ public final class FabricNetworkBackend implements NetworkBackend {
         remember(definition);
         //? if >=1.21 {
         CustomPacketPayload.Type<T> payloadType = new CustomPacketPayload.Type<>(definition.id());
-        var codec = CustomPacketPayload.codec(definition.writer()::accept, definition.reader()::apply);
+        var codec = CustomPacketPayload.codec(RosettaPacket::write, definition.reader()::apply);
         RosettaPacket.registerType(definition.type(), payloadType);
         //? if >=26.1
         /*PayloadTypeRegistry.clientboundPlay().register(payloadType, codec);*/
@@ -72,7 +72,7 @@ public final class FabricNetworkBackend implements NetworkBackend {
         //?} else {
         /*PacketDefinition<RosettaPacket> definition = definition(packet);
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
-        definition.writer().accept(packet, buffer);
+        packet.write(buffer);
         Client.send(definition, buffer);
         *///?}
     }
@@ -84,7 +84,7 @@ public final class FabricNetworkBackend implements NetworkBackend {
         //?} else {
         /*PacketDefinition<RosettaPacket> definition = definition(packet);
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
-        definition.writer().accept(packet, buffer);
+        packet.write(buffer);
         ServerPlayNetworking.send(player, definition.id(), buffer);
         *///?}
     }
@@ -108,7 +108,7 @@ public final class FabricNetworkBackend implements NetworkBackend {
                 CustomPacketPayload.Type<T> type, PacketDefinition<T> definition
         ) {
             ClientPlayNetworking.registerGlobalReceiver(type, (packet, context) ->
-                    definition.handler().handle(packet, context.player().level(), context.player()));
+                    definition.clientboundHandler().handle(packet, context.player()));
         }
 
         private static void send(RosettaPacket packet) {
@@ -120,7 +120,7 @@ public final class FabricNetworkBackend implements NetworkBackend {
                 T packet = definition.reader().apply(buffer);
                 client.execute(() -> {
                     if (client.level != null && client.player != null) {
-                        definition.handler().handle(packet, client.level, client.player);
+                        definition.clientboundHandler().handle(packet, client.player);
                     }
                 });
             });

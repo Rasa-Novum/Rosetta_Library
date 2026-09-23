@@ -36,7 +36,7 @@ public final class ForgeNetworkBackend implements NetworkBackend {
             throw new IllegalArgumentException("Packet class was registered twice: " + definition.type().getName());
         }
         state.channel.messageBuilder(definition.type(), state.discriminator.getAndIncrement(), direction)
-                .encoder(definition.writer())
+                .encoder(RosettaPacket::write)
                 .decoder(definition.reader())
                 //? if <1.19 {
                 .consumer((packet, contextSupplier) -> {
@@ -47,7 +47,7 @@ public final class ForgeNetworkBackend implements NetworkBackend {
                     context.enqueueWork(() -> {
                         if (direction == NetworkDirection.PLAY_TO_SERVER) {
                             ServerPlayer sender = context.getSender();
-                            if (sender != null) definition.handler().handle(packet, net.rasanovum.rosetta.util.EntityCompat.getPlayerServerLevel(sender), sender);
+                            if (sender != null) definition.serverboundHandler().handle(packet, sender);
                         } else {
                             Client.handle(packet, definition);
                         }
@@ -94,7 +94,7 @@ public final class ForgeNetworkBackend implements NetworkBackend {
         private static <T extends RosettaPacket> void handle(T packet, PacketDefinition<T> definition) {
             var minecraft = net.minecraft.client.Minecraft.getInstance();
             if (minecraft.level != null && minecraft.player != null) {
-                definition.handler().handle(packet, minecraft.level, minecraft.player);
+                definition.clientboundHandler().handle(packet, minecraft.player);
             }
         }
     }

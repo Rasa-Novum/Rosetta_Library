@@ -25,7 +25,7 @@ public final class AssetChannels {
             if (initialized) return;
             RosettaNetwork.channel(RuneweaverRosetta.MOD_ID).clientbound(
                     "asset_snapshot_s2c", AssetSnapshotS2C.class,
-                    AssetSnapshotS2C::write, AssetSnapshotS2C::new, AssetSnapshotS2C::handle
+                    AssetSnapshotS2C::new, AssetSnapshotS2C::handle
             );
             ServerHooks.register(new Hooks());
             initialized = true;

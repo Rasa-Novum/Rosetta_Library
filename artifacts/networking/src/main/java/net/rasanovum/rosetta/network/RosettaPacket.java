@@ -1,5 +1,7 @@
 package net.rasanovum.rosetta.network;
 
+import net.minecraft.network.FriendlyByteBuf;
+
 //? if >=1.21 {
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
@@ -7,11 +9,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 //?}
 
-/** Marker interface for a packet registered through {@link RosettaNetwork}. */
+/** A packet registered through {@link RosettaNetwork}. */
 public interface RosettaPacket
         //? if >=1.21
         extends CustomPacketPayload
 {
+    void write(FriendlyByteBuf buffer);
+
     //? if >=1.21 {
     Map<Class<?>, Type<?>> TYPE_CACHE = new ConcurrentHashMap<>();
 
