@@ -71,6 +71,6 @@ final class NeoForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
     public Optional<T> find(O owner) { return holder(owner).getExistingData(type.get()); }
     public void set(O owner, T value) { holder(owner).setData(type.get(), value); }
     public void remove(O owner) { holder(owner).removeData(type.get()); }
-    public void markDirty(O owner) { find(owner).ifPresent(value -> holder(owner).setData(type.get(), value)); }
+    public void markDirty(O owner) { AttachmentDirty.mark(owner); }
 }
 *///?}

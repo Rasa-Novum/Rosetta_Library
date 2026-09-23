@@ -16,7 +16,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityManager;
@@ -66,29 +65,22 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
     }
 
     private static <O> void attach(AttachCapabilitiesEvent<O> event) {
-        Store store = new Store();
-        STORES.put(event.getObject(), store);
-        event.addCapability(PROVIDER_ID, new Provider(store));
-        event.addListener(() -> STORES.remove(event.getObject()));
+        event.addCapability(PROVIDER_ID, new Provider(event.getObject()));
+        // The weak map retains populated stores through capability invalidation for PlayerEvent.Clone.
     }
 
-    private Store store(O owner) { return STORES.computeIfAbsent(owner, ignored -> new Store()); }
+    private static Store store(Object owner) { return STORES.computeIfAbsent(owner, ignored -> new Store()); }
     public Optional<T> find(O owner) {
         Store store = STORES.get(owner);
         return store == null ? Optional.empty() : store.find(definition);
     }
-    public void set(O owner, T value) { store(owner).set(definition, value); dirty(owner); }
+    public void set(O owner, T value) { store(owner).set(definition, value); AttachmentDirty.mark(owner); }
     public void remove(O owner) {
         Store store = STORES.get(owner);
         if (store != null) store.remove(definition);
-        dirty(owner);
+        AttachmentDirty.mark(owner);
     }
-    public void markDirty(O owner) { dirty(owner); }
-
-    private void dirty(O owner) {
-        if (owner instanceof ChunkAccess chunk) chunk.setUnsaved(true);
-        else if (owner instanceof BlockEntity blockEntity) blockEntity.setChanged();
-    }
+    public void markDirty(O owner) { AttachmentDirty.mark(owner); }
 
     @SubscribeEvent
     public static void loadChunk(ChunkDataEvent.Load event) {
@@ -96,7 +88,7 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
             CompoundTag tag = event.getData().getCompound(Rosetta.MOD_ID + ":attachments");
             Store store = STORES.get(event.getChunk());
             if (store != null) store.deserialize(tag);
-            else if (!tag.isEmpty()) STORES.computeIfAbsent(event.getChunk(), ignored -> new Store()).deserialize(tag);
+            else if (!tag.isEmpty()) store(event.getChunk()).deserialize(tag);
         }
     }
 
@@ -113,14 +105,8 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
     @SubscribeEvent
     public static void clonePlayer(PlayerEvent.Clone event) {
         if (!(event.getEntity() instanceof ServerPlayer)) return;
-        event.getOriginal().reviveCaps();
-        try {
-            Store from = event.getOriginal().getCapability(CAPABILITY).orElse(null);
-            Store to = event.getEntity().getCapability(CAPABILITY).orElse(null);
-            if (from != null && to != null) to.copyRespawnValues(from);
-        } finally {
-            event.getOriginal().invalidateCaps();
-        }
+        Store from = STORES.get(event.getOriginal());
+        if (from != null) from.copyRespawnValues(event.getEntity());
     }
 
     private record Definition<T>(String id, Supplier<T> factory, Codec<T> codec, boolean copyOnRespawn) {}
@@ -142,6 +128,10 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
         synchronized <T> void set(Definition<T> definition, T value) {
             if (values == null) values = new IdentityHashMap<>();
             values.put(definition, value);
+            if (unread != null) {
+                unread.remove(definition.id());
+                if (unread.isEmpty()) unread = null;
+            }
         }
 
         synchronized void remove(Definition<?> definition) {
@@ -160,7 +150,7 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
         synchronized CompoundTag serialize() {
             CompoundTag result = new CompoundTag();
             if (values != null) values.forEach((rawDefinition, value) -> encode(result, rawDefinition, value));
-            // Keep unknown data and the last saved value when a codec cannot encode its replacement.
+            // Keep data for unknown definitions and values that could not be decoded.
             if (unread != null) {
                 for (String id : unread.getAllKeys()) {
                     if (!result.contains(id)) result.put(id, unread.get(id).copy());
@@ -170,28 +160,34 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
         }
 
         private static <T> void encode(CompoundTag result, Definition<T> definition, Object value) {
-            definition.codec().encodeStart(NbtOps.INSTANCE, (T) value)
+            var tag = definition.codec().encodeStart(NbtOps.INSTANCE, (T) value)
                     .resultOrPartial(Rosetta.LOGGER::error)
-                    .ifPresent(tag -> result.put(definition.id(), tag));
+                    .orElseThrow(() -> new IllegalStateException("Failed to encode attachment " + definition.id()));
+            result.put(definition.id(), tag);
         }
 
-        synchronized void copyRespawnValues(Store source) {
+        synchronized void copyRespawnValues(Object targetOwner) {
             for (Definition<?> definition : DEFINITIONS.values()) {
-                if (definition.copyOnRespawn()) copyValue(source, definition);
+                if (definition.copyOnRespawn()) copyValue(targetOwner, definition);
             }
         }
 
-        private <T> void copyValue(Store source, Definition<T> definition) {
-            source.find(definition).ifPresent(value -> set(definition, value));
+        private <T> void copyValue(Object targetOwner, Definition<T> definition) {
+            find(definition).ifPresent(value -> store(targetOwner).set(definition, value));
         }
     }
 
-    private record Provider(Store store) implements ICapabilitySerializable<CompoundTag> {
+    private record Provider(Object owner) implements ICapabilitySerializable<CompoundTag> {
         public <C> @NotNull LazyOptional<C> getCapability(@NotNull Capability<C> cap, @Nullable Direction side) {
-            return cap == CAPABILITY ? LazyOptional.of(() -> store).cast() : LazyOptional.empty();
+            return cap == CAPABILITY ? LazyOptional.of(() -> store(owner)).cast() : LazyOptional.empty();
         }
-        public CompoundTag serializeNBT() { return store.serialize(); }
-        public void deserializeNBT(CompoundTag tag) { store.deserialize(tag); }
+        public CompoundTag serializeNBT() {
+            Store existing = STORES.get(owner);
+            return existing == null ? new CompoundTag() : existing.serialize();
+        }
+        public void deserializeNBT(CompoundTag tag) {
+            if (!tag.isEmpty()) store(owner).deserialize(tag);
+        }
     }
 }
 *///?}

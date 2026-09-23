@@ -33,6 +33,6 @@ final class FabricAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
     public Optional<T> find(O owner) { return Optional.ofNullable(target(owner).getAttached(type)); }
     public void set(O owner, T value) { target(owner).setAttached(type, value); }
     public void remove(O owner) { target(owner).removeAttached(type); }
-    public void markDirty(O owner) { find(owner).ifPresent(value -> target(owner).setAttached(type, value)); }
+    public void markDirty(O owner) { AttachmentDirty.mark(owner); }
 }
 //?}

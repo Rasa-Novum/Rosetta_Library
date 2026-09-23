@@ -13,3 +13,4 @@ test/
 tests/
 /scripts/
 *.gz
+*.salive
