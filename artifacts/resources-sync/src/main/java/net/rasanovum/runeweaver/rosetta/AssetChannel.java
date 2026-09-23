@@ -47,7 +47,10 @@ public final class AssetChannel {
     public static AssetChannel register(Identifier id, String folder, String extension,
                                         int maxAssetBytes, long maxTotalBytes, int maxAssets,
                                         BiConsumer<Identifier, Map<Identifier, byte[]>> clientConsumer) {
-        if (folder.isBlank() || extension.isEmpty() || maxAssetBytes <= 0 || maxTotalBytes <= 0 || maxAssets <= 0) {
+        if (folder.isBlank() || extension.isEmpty() || maxAssetBytes <= 0 || maxTotalBytes <= 0 || maxAssets <= 0 ||
+                maxAssetBytes > AssetSnapshotS2C.MAX_WIRE_ASSET_BYTES ||
+                maxTotalBytes > AssetSnapshotS2C.MAX_WIRE_TOTAL_BYTES ||
+                maxAssets > AssetSnapshotS2C.MAX_WIRE_ASSETS) {
             throw new IllegalArgumentException("invalid asset channel configuration");
         }
         if (clientConsumer == null) throw new NullPointerException("clientConsumer");

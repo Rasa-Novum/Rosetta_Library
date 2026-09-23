@@ -10,12 +10,19 @@ import java.util.List;
 
 /** One complete server-owned snapshot for one registered asset channel. */
 public record AssetSnapshotS2C(Identifier channel, List<Asset> assets) implements RosettaPacket {
-    private static final int MAX_WIRE_ASSET_BYTES = 16 * 1024 * 1024;
-    private static final int MAX_WIRE_ASSETS = 4096;
-    private static final long MAX_WIRE_TOTAL_BYTES = 32L * 1024 * 1024;
+    static final int MAX_WIRE_ASSET_BYTES = 16 * 1024 * 1024;
+    static final int MAX_WIRE_ASSETS = 4096;
+    static final long MAX_WIRE_TOTAL_BYTES = 32L * 1024 * 1024;
 
     public AssetSnapshotS2C {
         assets = assets == null ? List.of() : List.copyOf(assets);
+        if (assets.size() > MAX_WIRE_ASSETS) throw new IllegalArgumentException("Too many assets: " + assets.size());
+        long totalBytes = 0;
+        for (Asset asset : assets) {
+            if (asset.bytes.length > MAX_WIRE_ASSET_BYTES) throw new IllegalArgumentException("Asset is too large: " + asset.id());
+            totalBytes += asset.bytes.length;
+            if (totalBytes > MAX_WIRE_TOTAL_BYTES) throw new IllegalArgumentException("Asset snapshot is too large");
+        }
     }
 
     public AssetSnapshotS2C(FriendlyByteBuf buf) {

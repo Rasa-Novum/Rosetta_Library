@@ -32,11 +32,7 @@ public class AttachmentKey<O, T> {
     }
 
     public Optional<T> find(O owner) {
-        Optional<T> current = backend.find(Objects.requireNonNull(owner, "owner"));
-        if (current.isPresent()) return current;
-        Optional<T> migrated = AttachmentMigration.tryMigrate(this, owner);
-        migrated.ifPresent(value -> backend.set(owner, value));
-        return migrated;
+        return backend.find(Objects.requireNonNull(owner, "owner"));
     }
 
     public void set(O owner, T value) { backend.set(owner, Objects.requireNonNull(value, "value")); }

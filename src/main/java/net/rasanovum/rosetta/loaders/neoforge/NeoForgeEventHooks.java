@@ -23,7 +23,7 @@ import net.rasanovum.rosetta.event.ServerHooks;
 
 @EventBusSubscriber(modid = "rosetta_library")
 public final class NeoForgeEventHooks {
-    private static MinecraftServer server;
+    private static volatile MinecraftServer server;
 
     private NeoForgeEventHooks() {}
 
@@ -61,7 +61,16 @@ public final class NeoForgeEventHooks {
 
     @SubscribeEvent
     public static void dataPackReloaded(TagsUpdatedEvent event) {
-        if (server != null) ServerHooks.dataPackReloaded(server);
+        //? if >=26.2 {
+        if (!(event instanceof TagsUpdatedEvent.ServerDataLoad)) return;
+        //?} else {
+        if (event.getUpdateCause() != TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) return;
+        //?}
+        MinecraftServer currentServer = server;
+        if (currentServer == null) return;
+        currentServer.execute(() -> {
+            if (server == currentServer) ServerHooks.dataPackReloaded(currentServer);
+        });
     }
 
     @SubscribeEvent
