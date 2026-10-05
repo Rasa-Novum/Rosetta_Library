@@ -2,7 +2,8 @@
 
 Start with [setup](setup.md) to select artifacts and dependencies. See [building](building.md) for working on this repository.
 
-| Artifact                 | Guide                                                                    | Dependencies                                                          |
+### Artifacts
+| Name                     | Guide                                                                    | Dependencies                                                          |
 |--------------------------|--------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | `rosetta` (core)         | [Registries, compatibility helpers, and lifecycle hooks](core/README.md) |                                                                       |
 | `rosetta-networking`     | [Packets](networking/README.md)                                          | core                                                                  |
@@ -11,4 +12,11 @@ Start with [setup](setup.md) to select artifacts and dependencies. See [building
 | `rosetta-resources`      | [Runtime resource editing](resources/README.md)                          | core                                                                  |
 | `rosetta-resources-sync` | [Datapack assets sent to clients](resources-sync/README.md)              | core, networking, resources                                           |
 
-[Gradle plugins](gradle/README.md): [Stonecutter](gradle/stonecutter.md), [shaders](gradle/shaders.md), [datapack JSON](gradle/data.md), and [local dependencies](gradle/local-dependencies.md).
+### Gradle Plugins
+| Name                     | Guide                                                 |
+|--------------------------|-------------------------------------------------------|
+| General Setup            | [Docs](gradle/README.md)                              |
+| Stonecutter              | [Docs](gradle/stonecutter.md)                         |
+| Shaders                  | [Docs](gradle/shaders.md)                             |
+| Datapack JSON            | [Docs](gradle/data.md)                                |
+| Local Dependencies       | [Docs](gradle/local-dependencies.md)                  |
