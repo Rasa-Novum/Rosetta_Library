@@ -12,11 +12,11 @@ Compatibility helpers for Minecraft mods built across Fabric, Forge, and NeoForg
 | --- | --- |
 | 1.18.2 | Forge |
 | 1.19.2 | Forge |
-| 26.3 | Fabric, NeoForge |
-| 26.2 | Fabric, NeoForge |
-| 26.1–26.1.2 | Fabric, NeoForge |
-| 1.21.1 | Fabric, NeoForge |
 | 1.20.1 | Fabric, Forge |
+| 1.21.1 | Fabric, NeoForge |
+| 26.1–26.1.2 | Fabric, NeoForge |
+| 26.2 | Fabric, NeoForge |
+| 26.3 | Fabric, NeoForge |
 
 ```powershell
 .\gradlew.bat buildAllArtifacts
