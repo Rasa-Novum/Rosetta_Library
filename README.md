@@ -2,7 +2,7 @@
   <img src="src/main/resources/logo.png" alt="Rosetta Library icon">
 </p>
 
-# Rosetta
+<h1 align="center">Rosetta Library<br></h1>
 
 Compatibility helpers for Minecraft mods built across Fabric, Forge, and NeoForge. Optional artifacts provide networking, persistent attachments, configuration, and runtime resource handling. Gradle plugins handle shared source replacements, shaders, and datapack JSON.
 
@@ -18,8 +18,8 @@ Compatibility helpers for Minecraft mods built across Fabric, Forge, and NeoForg
 | 1.21.1 | Fabric, NeoForge |
 | 1.20.1 | Fabric, Forge |
 
-The 26.1 targets share one jar per loader. Other listed versions have separate targets.
-
 ```powershell
 .\gradlew.bat buildAllArtifacts
 ```
+
+Rosetta Library uses [Stonecutter](https://stonecutter.kikugie.dev/) to maintain its version-specific implementations.
