@@ -7,4 +7,8 @@ run/
 *.iml
 out/
 /libs/
-/tests
+*.log
+*.gz
+**/test/
+**/tests/
+/scripts
