@@ -13,10 +13,4 @@ Start with [setup](setup.md) to select artifacts and dependencies. See [building
 | `rosetta-resources-sync` | [Datapack assets sent to clients](resources-sync/README.md)              | core, networking, resources                                           |
 
 ### Gradle Plugins
-| Name                     | Guide                                                 |
-|--------------------------|-------------------------------------------------------|
-| General Setup            | [Docs](gradle/README.md)                              |
-| Stonecutter              | [Docs](gradle/stonecutter.md)                         |
-| Shaders                  | [Docs](gradle/shaders.md)                             |
-| Datapack JSON            | [Docs](gradle/data.md)                                |
-| Local Dependencies       | [Docs](gradle/local-dependencies.md)                  |
+Read the docs on the [Gradle Plugins](gradle/README.md) page.
