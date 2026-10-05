@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>net.rasanovum.rosetta</groupId>
+  <artifactId>rosetta-config-26.2-fabric</artifactId>
+  <version>0.2.0</version>
+  <name>Rosetta Config (26.2-fabric)</name>
+  <description>Server-synchronized MidnightLib configuration with permission-controlled editing.</description>
+  <url>https://github.com/Rasa-Novum/Rosetta_Library</url>
+  <licenses>
+    <license>
+      <name>The MIT License</name>
+      <url>https://opensource.org/license/mit</url>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <name>Rasa Novum</name>
+    </developer>
+    <developer>
+      <name>xameryn</name>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git:https://github.com/Rasa-Novum/Rosetta_Library.git</connection>
+    <developerConnection>scm:git:ssh://github.com/Rasa-Novum/Rosetta_Library.git</developerConnection>
+    <url>https://github.com/Rasa-Novum/Rosetta_Library</url>
+  </scm>
+  <dependencies>
+    <dependency>
+      <groupId>net.rasanovum.rosetta</groupId>
+      <artifactId>rosetta-26.2-fabric</artifactId>
+      <version>0.2.0</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.rasanovum.rosetta</groupId>
+      <artifactId>rosetta-networking-26.2-fabric</artifactId>
+      <version>0.2.0</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.rasanovum.rosetta</groupId>
+      <artifactId>midnightlib-26.2-fabric</artifactId>
+      <version>0.2.0</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+</project>
