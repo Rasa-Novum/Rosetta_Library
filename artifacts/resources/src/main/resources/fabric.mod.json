@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "contact": {
+    "homepage": "${mod_homepage}",
+    "sources": "${mod_sources}",
+    "issues": "${mod_issues}"
+  },
+  "id": "rosetta_resources",
+  "version": "${version}",
+  "name": "${mod_name}",
+  "description": ${mod_description},
+  "authors": ${mod_authors},
+  "license": "${mod_license}",
+  "environment": "*",
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "${minecraft_version}",
+    "rosetta_library": ">=${rosetta_version}"
+  },
+  "mixins": [
+    "runeweaver.mixins.json"
+  ],
+  "icon": "logo.png"
+}

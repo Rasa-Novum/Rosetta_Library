@@ -9,16 +9,21 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+//? if >=26.2 {
+import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
+//?} else {
 import net.neoforged.neoforge.event.level.BlockEvent;
+//?}
 import net.neoforged.neoforge.event.level.ChunkWatchEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.rasanovum.rosetta.event.ServerHooks;
 
 @EventBusSubscriber(modid = "rosetta_library")
 public final class NeoForgeEventHooks {
-    private static MinecraftServer server;
+    private static volatile MinecraftServer server;
 
     private NeoForgeEventHooks() {}
 
@@ -44,6 +49,11 @@ public final class NeoForgeEventHooks {
     }
 
     @SubscribeEvent
+    public static void serverStarted(ServerStartedEvent event) {
+        ServerHooks.serverStarted(event.getServer());
+    }
+
+    @SubscribeEvent
     public static void serverStopping(ServerStoppingEvent event) {
         ServerHooks.serverStopping(event.getServer());
         server = null;
@@ -51,7 +61,16 @@ public final class NeoForgeEventHooks {
 
     @SubscribeEvent
     public static void dataPackReloaded(TagsUpdatedEvent event) {
-        if (server != null) ServerHooks.dataPackReloaded(server);
+        //? if >=26.2 {
+        if (!(event instanceof TagsUpdatedEvent.ServerDataLoad)) return;
+        //?} else {
+        if (event.getUpdateCause() != TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) return;
+        //?}
+        MinecraftServer currentServer = server;
+        if (currentServer == null) return;
+        currentServer.execute(() -> {
+            if (server == currentServer) ServerHooks.dataPackReloaded(currentServer);
+        });
     }
 
     @SubscribeEvent
@@ -70,10 +89,20 @@ public final class NeoForgeEventHooks {
     }
 
     @SubscribeEvent
+    //? if >=26.2 {
+    public static void blockBreak(BreakBlockEvent event) {
+        if (event.getPlayer() instanceof ServerPlayer player &&
+                !ServerHooks.beforeBlockBreak(event.getLevel(), event.getPos(), player)) {
+            event.setCanceled(true);
+            event.setNotifyClient(true);
+        }
+    }
+    //?} else {
     public static void blockBreak(BlockEvent.BreakEvent event) {
         if (event.getPlayer() instanceof ServerPlayer player &&
                 !ServerHooks.beforeBlockBreak(event.getLevel(), event.getPos(), player)) event.setCanceled(true);
     }
+    //?}
 
     @SubscribeEvent
     public static void registerCommands(RegisterCommandsEvent event) {

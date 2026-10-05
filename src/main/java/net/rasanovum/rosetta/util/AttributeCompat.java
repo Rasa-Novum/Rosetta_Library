@@ -5,10 +5,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
 import java.nio.charset.StandardCharsets;
-import java.util.EnumMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
@@ -60,28 +56,34 @@ public final class AttributeCompat {
 
     public static double calculateAttributeValueSkipping(AttributeInstance attribute, Predicate<AttributeModifier> skipModifier) {
         double baseValue = attribute.getBaseValue();
-        Map<AttributeModifier.Operation, Set<AttributeModifier>> operationToModifiers = new EnumMap<>(AttributeModifier.Operation.class);
-        for (AttributeModifier.Operation operation : AttributeModifier.Operation.values()) {
-            operationToModifiers.put(operation, new HashSet<>());
+        AttributeModifier[] modifiers = attribute.getModifiers().toArray(AttributeModifier[]::new);
+        for (int i = 0; i < modifiers.length; i++) {
+            if (skipModifier.test(modifiers[i])) modifiers[i] = null;
         }
 
         //? if >=1.21 {
-        for (AttributeModifier modifier : attribute.getModifiers()) {
-            if (!skipModifier.test(modifier)) operationToModifiers.get(modifier.operation()).add(modifier);
+        for (AttributeModifier modifier : modifiers) {
+            if (modifier != null && modifier.operation() == AttributeModifier.Operation.ADD_VALUE) baseValue += modifier.amount();
         }
-        for (AttributeModifier modifier : operationToModifiers.get(AttributeModifier.Operation.ADD_VALUE)) baseValue += modifier.amount();
         double value = baseValue;
-        for (AttributeModifier modifier : operationToModifiers.get(AttributeModifier.Operation.ADD_MULTIPLIED_BASE)) value += baseValue * modifier.amount();
-        for (AttributeModifier modifier : operationToModifiers.get(AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL)) value *= 1.0D + modifier.amount();
+        for (AttributeModifier modifier : modifiers) {
+            if (modifier != null && modifier.operation() == AttributeModifier.Operation.ADD_MULTIPLIED_BASE) value += baseValue * modifier.amount();
+        }
+        for (AttributeModifier modifier : modifiers) {
+            if (modifier != null && modifier.operation() == AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL) value *= 1.0D + modifier.amount();
+        }
         return attribute.getAttribute().value().sanitizeValue(value);
         //?} else {
-        /*for (AttributeModifier modifier : attribute.getModifiers()) {
-            if (!skipModifier.test(modifier)) operationToModifiers.get(modifier.getOperation()).add(modifier);
+        /*for (AttributeModifier modifier : modifiers) {
+            if (modifier != null && modifier.getOperation() == AttributeModifier.Operation.ADDITION) baseValue += modifier.getAmount();
         }
-        for (AttributeModifier modifier : operationToModifiers.get(AttributeModifier.Operation.ADDITION)) baseValue += modifier.getAmount();
         double value = baseValue;
-        for (AttributeModifier modifier : operationToModifiers.get(AttributeModifier.Operation.MULTIPLY_BASE)) value += baseValue * modifier.getAmount();
-        for (AttributeModifier modifier : operationToModifiers.get(AttributeModifier.Operation.MULTIPLY_TOTAL)) value *= 1.0D + modifier.getAmount();
+        for (AttributeModifier modifier : modifiers) {
+            if (modifier != null && modifier.getOperation() == AttributeModifier.Operation.MULTIPLY_BASE) value += baseValue * modifier.getAmount();
+        }
+        for (AttributeModifier modifier : modifiers) {
+            if (modifier != null && modifier.getOperation() == AttributeModifier.Operation.MULTIPLY_TOTAL) value *= 1.0D + modifier.getAmount();
+        }
         return attribute.getAttribute().sanitizeValue(value);
         *///?}
     }
@@ -91,4 +93,11 @@ public final class AttributeCompat {
         return UUID.nameUUIDFromBytes(modifierKey.getBytes(StandardCharsets.UTF_8));
     }
     *///?}
+    public static double amount(AttributeModifier modifier) {
+        //? if >=1.21 {
+        return modifier.amount();
+        //?} else {
+        /*return modifier.getAmount();
+        *///?}
+    }
 }

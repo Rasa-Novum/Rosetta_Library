@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "icon": "logo.png",
+  "id": "rosetta_config",
+  "version": "${version}",
+  "name": "${mod_name}",
+  "description": ${mod_description},
+  "authors": ${mod_authors},
+  "contact": {
+    "homepage": "${mod_homepage}",
+    "sources": "${mod_sources}",
+    "issues": "${mod_issues}"
+  },
+  "license": "${mod_license}",
+  "environment": "*",
+  "mixins": [
+    "rosetta-config.mixins.json"
+  ],
+  "entrypoints": {"main": ["net.rasanovum.rosetta.config.ConfigMod"]},
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "${minecraft_version}",
+    "rosetta_library": ">=${rosetta_version}",
+    "rosetta_networking": ">=${rosetta_version}",
+    "midnightlib": ">=${midnight_version}"
+  }
+}

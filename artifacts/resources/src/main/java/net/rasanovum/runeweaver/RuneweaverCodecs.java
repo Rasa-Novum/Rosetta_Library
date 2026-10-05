@@ -1,0 +1,135 @@
+package net.rasanovum.runeweaver;
+
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.server.packs.resources.Resource;
+import net.rasanovum.runeweaver.util.interfaces.RuneweaverCodec;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+@SuppressWarnings("unused")
+public interface RuneweaverCodecs {
+
+    RuneweaverCodec<JsonElement> JSON_ELEMENT = new RuneweaverCodec<>() {
+        @Override
+        public String extensionAndDot() {
+            return ".json";
+        }
+
+        @Override
+        public JsonElement deserialize(Resource r) throws IOException {
+            //? if <1.19 {
+            /*return JsonParser.parseReader(new java.io.InputStreamReader(r.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
+            *///?} else {
+            return JsonParser.parseReader(r.openAsReader());
+            //?}
+        }
+
+        @Override
+        public Resource serialize(Resource r, JsonElement x) {
+            //? if <1.19 {
+            /*return new net.rasanovum.runeweaver.util.LegacyResource(r, x.toString().getBytes());
+            *///?} else if <1.19.3 {
+            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(x.toString().getBytes()), r::metadata);
+            *///?} else {
+            return new Resource(r.source(), () -> new ByteArrayInputStream(x.toString().getBytes()), r::metadata);
+            //?}
+        }
+
+        @Override
+        public ByteArrayOutputStream export(JsonElement resource) throws IOException {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            baos.write(new GsonBuilder().setPrettyPrinting().create().toJson(resource).getBytes());
+            return baos;
+        }
+    };
+
+    RuneweaverCodec<BufferedImage> PNG = new RuneweaverCodec<>() {
+        @Override
+        public String extensionAndDot() {
+            return ".png";
+        }
+
+        @Override
+        public BufferedImage deserialize(Resource r) throws IOException {
+            return ImageIO.read(open(r));
+        }
+
+        @Override
+        public Resource serialize(Resource r, BufferedImage x) throws IOException {
+            //? if <1.19 {
+            /*return new net.rasanovum.runeweaver.util.LegacyResource(r, bufferedImageToStream(x).toByteArray());
+            *///?} else if <1.19.3 {
+            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(bufferedImageToStream(x).toByteArray()), r::metadata);
+            *///?} else {
+            return new Resource(r.source(), () -> new ByteArrayInputStream(bufferedImageToStream(x).toByteArray()), r::metadata);
+            //?}
+        }
+
+        @Override
+        public ByteArrayOutputStream export(BufferedImage r) throws IOException {
+            return bufferedImageToStream(r);
+        }
+    };
+
+    RuneweaverCodec<CompoundTag> NBT = new RuneweaverCodec<>() {
+        @Override
+        public String extensionAndDot() {
+            return ".nbt";
+        }
+
+        @Override
+        public CompoundTag deserialize(Resource r) throws IOException {
+            //? if >1.20.1 {
+            return NbtIo.readCompressed(open(r), NbtAccounter.unlimitedHeap());
+            //?} else {
+            /*return NbtIo.readCompressed(open(r));
+            *///?}
+        }
+
+        @Override
+        public Resource serialize(Resource r, CompoundTag x) throws IOException {
+            //? if <1.19 {
+            /*return new net.rasanovum.runeweaver.util.LegacyResource(r, nbtToStream(x).toByteArray());
+            *///?} else if <1.19.3 {
+            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(nbtToStream(x).toByteArray()), r::metadata);
+            *///?} else {
+            return new Resource(r.source(), () -> new ByteArrayInputStream(nbtToStream(x).toByteArray()), r::metadata);
+            //?}
+        }
+
+        @Override
+        public ByteArrayOutputStream export(CompoundTag r) throws IOException {
+            return nbtToStream(r);
+        }
+    };
+
+    private static java.io.InputStream open(Resource resource) throws IOException {
+        //? if <1.19 {
+        /*return resource.getInputStream();
+        *///?} else {
+        return resource.open();
+        //?}
+    }
+
+    private static ByteArrayOutputStream bufferedImageToStream(BufferedImage image) throws IOException {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", stream);
+        return stream;
+    }
+
+    private static ByteArrayOutputStream nbtToStream(CompoundTag compound) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        NbtIo.writeCompressed(compound, baos);
+        return baos;
+    }
+
+}

@@ -1,16 +1,9 @@
 import org.gradle.language.jvm.tasks.ProcessResources
 
-val minecraftVersion = project.name.substringBeforeLast('-')
-val packFormat = when (minecraftVersion) {
-    "1.20.1" -> 15
-    "1.21.1" -> 34
-    "26.1" -> 84
-    else -> error("Unsupported resource-pack format for $minecraftVersion")
-}
-
+val packFormatFields = extra["rosetta.packFormatFields"].toString()
 tasks.named<ProcessResources>("processResources") {
-    inputs.property("rosettaPackFormat", packFormat)
+    inputs.property("rosettaPackFormatFields", packFormatFields)
     filesMatching("pack.mcmeta") {
-        expand("pack_format" to packFormat)
+        expand("pack_format_fields" to packFormatFields)
     }
 }

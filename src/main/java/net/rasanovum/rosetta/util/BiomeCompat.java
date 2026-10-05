@@ -2,6 +2,7 @@ package net.rasanovum.rosetta.util;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+//? if >=1.19.3
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -16,6 +17,12 @@ import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.core.BlockPos;
 
+import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+import net.minecraft.world.level.biome.BiomeSource;
+//? if >=1.19
+import net.minecraft.world.level.levelgen.RandomState;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,11 +30,57 @@ import java.util.Optional;
 public final class BiomeCompat {
     private BiomeCompat() {}
 
+    public static NoiseGeneratorSettings generatorSettings(NoiseBasedChunkGenerator generator) {
+        //? if <1.19 {
+        /*return ((net.rasanovum.rosetta.mixin.LegacyNoiseGeneratorAccessor) generator).rosetta$settings().value();
+        *///?} else {
+        return generator.generatorSettings().value();
+        //?}
+    }
+
+    public static Climate.Sampler climateSampler(ServerLevel level) {
+        //? if <1.19 {
+        /*return level.getChunkSource().getGenerator().climateSampler();
+        *///?} else {
+        return climateSampler(level.getChunkSource().randomState());
+        //?}
+    }
+
+    //? if >=1.19 {
+    public static Climate.Sampler climateSampler(RandomState state) {
+        //? if >=26.3 {
+        /*return state.createClimateSampler(net.minecraft.world.level.levelgen.densityfunction.SamplerContext.EMPTY_UNCACHED);
+        *///?} else {
+        return state.sampler();
+        //?}
+    }
+
+    //?}
+
+    @FunctionalInterface
+    public interface Sampler {
+        Holder<Biome> getNoiseBiome(int x, int y, int z);
+    }
+
+    /** Coordinates are in quart-biome units. Reuse the resolver for repeated samples. */
+    public static Sampler resolver(BiomeSource source,
+            Climate.Sampler sampler) {
+        //? if >=26.3 {
+        /*return source.createResolver(sampler)::getNoiseBiome;
+        *///?} else {
+        return (x, y, z) -> source.getNoiseBiome(x, y, z, sampler);
+        //?}
+    }
+
     public static Registry<Biome> registry(MinecraftServer server) {
         //? if >=26.1 {
         /*return server.registryAccess().lookupOrThrow(Registries.BIOME);
         *///?} else {
+        //? if <1.19.3 {
+        /*return server.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
+        *///?} else {
         return server.registryAccess().registryOrThrow(Registries.BIOME);
+        //?}
         //?}
     }
 
@@ -35,7 +88,11 @@ public final class BiomeCompat {
         //? if >=26.1 {
         /*return level.registryAccess().lookupOrThrow(Registries.BIOME);
         *///?} else {
+        //? if <1.19.3 {
+        /*return level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
+        *///?} else {
         return level.registryAccess().registryOrThrow(Registries.BIOME);
+        //?}
         //?}
     }
 
@@ -43,7 +100,13 @@ public final class BiomeCompat {
         //? if >=26.1 {
         /*return registry.get(location);
         *///?} else {
+        //? if <1.19.3 {
+        /*return registry.getHolder(ResourceKey.create(Registry.BIOME_REGISTRY, location))
+                .filter(holder -> holder instanceof Holder.Reference<Biome>)
+                .map(holder -> (Holder.Reference<Biome>) holder);
+        *///?} else {
         return registry.getHolder(ResourceKey.create(Registries.BIOME, location));
+        //?}
         //?}
     }
 

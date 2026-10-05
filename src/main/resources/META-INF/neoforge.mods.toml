@@ -1,13 +1,16 @@
 modLoader="javafml"
 loaderVersion="${loader_version_range}"
-license="MIT"
+license="${mod_license}"
+
+issueTrackerURL="${mod_issues}"
 
 [[mods]]
 authors="${mod_authors}"
 modId="rosetta_library"
 version="${version}"
-displayName="Rosetta"
-logoFile="logo.png"
+displayName="${mod_name}"
+displayURL="${mod_homepage}"
+${icon_property}="logo.png"
 description='''${mod_description}'''
 
 [[dependencies.rosetta_library]]
@@ -16,3 +19,6 @@ type="required"
 versionRange="${minecraft_version_range}"
 ordering="NONE"
 side="BOTH"
+
+[[mixins]]
+config="rosetta-client.mixins.json"

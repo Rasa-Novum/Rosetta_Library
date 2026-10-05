@@ -4,6 +4,7 @@ import net.rasanovum.rosetta.util.RegistryCompat;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+//? if >=1.19.3
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
@@ -19,7 +20,8 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 
 //? if forge {
-/*import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+/*//? if >=1.19.3
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.registries.DeferredRegister;
 *///?} else if neoforge {
 /*import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
@@ -28,7 +30,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 //? if >=26.1 && fabric {
 /*import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
-*///?} else if fabric {
+*///?} else if fabric && >=1.19.3 {
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 //?}
 
@@ -58,7 +60,11 @@ import java.util.function.Supplier;
 public final class ModRegistrar {
     private final String namespace;
     private final Map<Registry<?>, Set<String>> paths = new LinkedHashMap<>();
+    //? if <1.19.3 {
+    /*private final Map<CreativeModeTab, CreativeTabEntries> creativeTabs = new LinkedHashMap<>();
+    *///?} else {
     private final Map<ResourceKey<CreativeModeTab>, CreativeTabEntries> creativeTabs = new LinkedHashMap<>();
+    //?}
     //? if fabric {
     private final List<FabricRegistration<?>> fabricRegistrations = new ArrayList<>();
     //?} else {
@@ -114,7 +120,11 @@ public final class ModRegistrar {
             BlockBehaviour.Properties properties
     ) {
         ResourceLocation id = id(path);
+        //? if <1.19.3 {
+        /*return register(Registry.BLOCK, path,
+        *///?} else {
         return register(BuiltInRegistries.BLOCK, path,
+        //?}
                 () -> factory.apply(RegistryCompat.blockProperties(id, properties)));
     }
 
@@ -124,12 +134,20 @@ public final class ModRegistrar {
             Item.Properties properties
     ) {
         ResourceLocation id = id(path);
+        //? if <1.19.3 {
+        /*return register(Registry.ITEM, path,
+        *///?} else {
         return register(BuiltInRegistries.ITEM, path,
+        //?}
                 () -> factory.apply(RegistryCompat.itemProperties(id, properties)));
     }
 
     /** Declare entries for an existing creative tab. Repeated calls for the same tab share one ordered list. */
+    //? if <1.19.3 {
+    /*public CreativeTabEntries creativeTab(CreativeModeTab tab) {
+    *///?} else {
     public CreativeTabEntries creativeTab(ResourceKey<CreativeModeTab> tab) {
+    //?}
         requireCreativeDeclaring(tab);
         return creativeTabs.computeIfAbsent(tab, CreativeTabEntries::new);
     }
@@ -152,7 +170,11 @@ public final class ModRegistrar {
     ) {
         RegistryHandle<B> block = block(path, blockFactory, blockProperties);
         ResourceLocation id = id(path);
+        //? if <1.19.3 {
+        /*RegistryHandle<I> item = register(Registry.ITEM, path,
+        *///?} else {
         RegistryHandle<I> item = register(BuiltInRegistries.ITEM, path,
+        //?}
                 () -> itemFactory.apply(block.get(), RegistryCompat.itemProperties(id, itemProperties)));
         return new BlockItemEntry<>(block, item);
     }
@@ -170,7 +192,11 @@ public final class ModRegistrar {
         }
         RegistryHandle<? extends Block>[] blocks = validBlocks.clone();
         for (RegistryHandle<? extends Block> block : blocks) Objects.requireNonNull(block, "validBlocks");
+        //? if <1.19.3 {
+        /*return register(Registry.BLOCK_ENTITY_TYPE, path, () -> createBlockEntityType(factory, blocks));
+        *///?} else {
         return register(BuiltInRegistries.BLOCK_ENTITY_TYPE, path, () -> createBlockEntityType(factory, blocks));
+        //?}
     }
 
     /** Attach all declared registries. This operation is deliberately one-shot. */
@@ -184,16 +210,46 @@ public final class ModRegistrar {
             //? if >=26.1 && fabric {
             /*for (FabricRegistration<?> registration : fabricRegistrations) registration.register();
             for (CreativeTabEntries entries : creativeTabs.values()) {
-                CreativeModeTabEvents.modifyOutputEvent(entries.tab).register(entries::accept);
+                CreativeModeTabEvents.modifyOutputEvent(entries.tab).register(output -> entries.accept(new CreativeTabOutput() {
+                    @Override
+                    public void accept(ItemStack stack) {
+                        output.accept(stack);
+                    }
+
+                    @Override
+                    public void insertAfter(ItemLike after, ItemLike item) {
+                        output.insertAfter(after, item);
+                    }
+                }));
             }
             *///?} else if fabric {
             for (FabricRegistration<?> registration : fabricRegistrations) registration.register();
             for (CreativeTabEntries entries : creativeTabs.values()) {
-                ItemGroupEvents.modifyEntriesEvent(entries.tab).register(entries::accept);
+                //? if <1.19.3 {
+                /*LegacyCreativeTabHooks.register(entries.tab, entries::accept);
+                *///?} else {
+                ItemGroupEvents.modifyEntriesEvent(entries.tab).register(output -> entries.accept(new CreativeTabOutput() {
+                    @Override
+                    public void accept(ItemStack stack) {
+                        output.accept(stack);
+                    }
+
+                    @Override
+                    public void insertAfter(ItemLike after, ItemLike item) {
+                        output.addAfter(after, item);
+                    }
+                }));
+                //?}
             }
             //?} else {
             /*for (DeferredRegister<?> deferred : deferredRegisters.values()) deferred.register(context.eventBus());
+            //? if <1.19.3 {
+            for (CreativeTabEntries entries : creativeTabs.values()) {
+                LegacyCreativeTabHooks.register(entries.tab, entries::accept);
+            }
+            //?} else {
             if (!creativeTabs.isEmpty()) context.eventBus().addListener(this::addCreativeTabContents);
+            //?}
             *///?}
             state = State.ATTACHED;
         } catch (RuntimeException exception) {
@@ -217,18 +273,37 @@ public final class ModRegistrar {
         }
     }
 
+    //? if <1.19.3 {
+    /*private void requireCreativeDeclaring(CreativeModeTab tab) {
+    *///?} else {
     private void requireCreativeDeclaring(ResourceKey<CreativeModeTab> tab) {
+    //?}
         Objects.requireNonNull(tab, "tab");
         if (state != State.DECLARING) {
             throw new IllegalStateException("Cannot add entries to creative tab '"
-                    + RegistryCompat.keyLocation(tab) + "' after registrar '" + namespace + "' attachment started");
+                    + tab.toString() + "' after registrar '" + namespace + "' attachment started");
         }
     }
 
-    //? if forge || neoforge {
+    //? if >=1.19.3 && (forge || neoforge) {
     /*private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         CreativeTabEntries entries = creativeTabs.get(event.getTabKey());
-        if (entries != null) entries.accept(event);
+        if (entries != null) entries.accept(new CreativeTabOutput() {
+            @Override
+            public void accept(ItemStack stack) {
+                event.accept(stack);
+            }
+
+            //? if neoforge {
+            /^@Override
+            public void insertAfter(ItemLike after, ItemLike item) {
+                event.insertAfter(
+                        after.asItem().getDefaultInstance(),
+                        item.asItem().getDefaultInstance(),
+                        CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+            }
+            ^///?}
+        });
     }
     *///?}
 
@@ -262,13 +337,21 @@ public final class ModRegistrar {
 
     /** Ordered entries for one vanilla creative tab. */
     public final class CreativeTabEntries {
+        //? if <1.19.3 {
+        /*private final CreativeModeTab tab;
+        *///?} else {
         private final ResourceKey<CreativeModeTab> tab;
-        private final List<Consumer<CreativeModeTab.Output>> callbacks = new ArrayList<>();
+        //?}
+        private final List<Consumer<CreativeTabOutput>> callbacks = new ArrayList<>();
         private final Set<ResourceLocation> handles = new LinkedHashSet<>();
         private final Set<Item> items = Collections.newSetFromMap(new IdentityHashMap<>());
         private final Set<String> callbackKeys = new LinkedHashSet<>();
 
+        //? if <1.19.3 {
+        /*private CreativeTabEntries(CreativeModeTab tab) {
+        *///?} else {
         private CreativeTabEntries(ResourceKey<CreativeModeTab> tab) {
+        //?}
             this.tab = tab;
         }
 
@@ -285,6 +368,18 @@ public final class ModRegistrar {
         public CreativeTabEntries add(BlockItemEntry<?, ?> entry) {
             Objects.requireNonNull(entry, "entry");
             return add(entry.item());
+        }
+
+        /** Add a registered item immediately after an existing item where the loader supports ordering. */
+        public CreativeTabEntries addAfter(ItemLike after, RegistryHandle<? extends ItemLike> handle) {
+            requireCreativeDeclaring(tab);
+            Objects.requireNonNull(after, "after");
+            Objects.requireNonNull(handle, "handle");
+            if (!handles.add(handle.id())) {
+                throw duplicate("registry handle '" + handle.id() + "'");
+            }
+            callbacks.add(output -> output.insertAfter(after, handle.get()));
+            return this;
         }
 
         public CreativeTabEntries add(ItemLike item) {
@@ -306,7 +401,7 @@ public final class ModRegistrar {
         }
 
         /** Add any number of dynamic stacks through the vanilla output interface. */
-        public CreativeTabEntries addStacks(String key, Consumer<CreativeModeTab.Output> callback) {
+        public CreativeTabEntries addStacks(String key, Consumer<CreativeTabOutput> callback) {
             requireCreativeDeclaring(tab);
             Objects.requireNonNull(callback, "callback");
             ResourceLocation callbackId = id(key);
@@ -317,13 +412,26 @@ public final class ModRegistrar {
             return this;
         }
 
-        private void accept(CreativeModeTab.Output output) {
-            for (Consumer<CreativeModeTab.Output> callback : callbacks) callback.accept(output);
+        private void accept(CreativeTabOutput output) {
+            for (Consumer<CreativeTabOutput> callback : callbacks) callback.accept(output);
         }
 
         private IllegalArgumentException duplicate(String entry) {
             return new IllegalArgumentException("Duplicate creative-tab " + entry + " for tab '"
-                    + RegistryCompat.keyLocation(tab) + "'");
+                    + tab.toString() + "'");
+        }
+    }
+
+    @FunctionalInterface
+    public interface CreativeTabOutput {
+        void accept(ItemStack stack);
+
+        default void accept(ItemLike item) {
+            accept(new ItemStack(item));
+        }
+
+        default void insertAfter(ItemLike after, ItemLike item) {
+            accept(item);
         }
     }
 

@@ -8,9 +8,18 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TagsUpdatedEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+//? if <1.19 {
+import net.minecraftforge.event.world.BlockEvent;
+//?} else {
 import net.minecraftforge.event.level.BlockEvent;
+//?}
+//? if <1.19 {
+import net.minecraftforge.event.world.ChunkWatchEvent;
+//?} else {
 import net.minecraftforge.event.level.ChunkWatchEvent;
+//?}
 import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -24,23 +33,40 @@ public final class ForgeEventHooks {
 
     @SubscribeEvent
     public static void playerJoined(PlayerEvent.PlayerLoggedInEvent event) {
+        //? if <1.19 {
+        if (event.getPlayer() instanceof ServerPlayer player) ServerHooks.playerJoined(player);
+        //?} else {
         if (event.getEntity() instanceof ServerPlayer player) ServerHooks.playerJoined(player);
+        //?}
     }
 
     @SubscribeEvent
     public static void playerLeft(PlayerEvent.PlayerLoggedOutEvent event) {
+        //? if <1.19 {
+        if (event.getPlayer() instanceof ServerPlayer player) ServerHooks.playerLeft(player);
+        //?} else {
         if (event.getEntity() instanceof ServerPlayer player) ServerHooks.playerLeft(player);
+        //?}
     }
 
     @SubscribeEvent
     public static void levelTick(TickEvent.LevelTickEvent event) {
+        //? if <1.19 {
+        if (event.phase == TickEvent.Phase.END && event.world instanceof ServerLevel level) ServerHooks.serverLevelTick(level);
+        //?} else {
         if (event.phase == TickEvent.Phase.END && event.level instanceof ServerLevel level) ServerHooks.serverLevelTick(level);
+        //?}
     }
 
     @SubscribeEvent
     public static void serverStarting(ServerStartingEvent event) {
         server = event.getServer();
         ServerHooks.serverStarting(server);
+    }
+
+    @SubscribeEvent
+    public static void serverStarted(ServerStartedEvent event) {
+        ServerHooks.serverStarted(event.getServer());
     }
 
     @SubscribeEvent
@@ -51,28 +77,51 @@ public final class ForgeEventHooks {
 
     @SubscribeEvent
     public static void dataPackReloaded(TagsUpdatedEvent event) {
-        if (server != null) ServerHooks.dataPackReloaded(server);
+        if (server != null && event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) {
+            MinecraftServer currentServer = server;
+            currentServer.execute(() -> {
+                if (server == currentServer) {
+                    ServerHooks.dataPackReloaded(currentServer);
+                }
+            });
+        }
     }
 
     @SubscribeEvent
     public static void dimensionChanged(PlayerEvent.PlayerChangedDimensionEvent event) {
+        //? if <1.19 {
+        if (event.getPlayer() instanceof ServerPlayer player) ServerHooks.playerChangedDimension(player);
+        //?} else {
         if (event.getEntity() instanceof ServerPlayer player) ServerHooks.playerChangedDimension(player);
+        //?}
     }
 
     @SubscribeEvent
     public static void chunkWatch(ChunkWatchEvent.Watch event) {
+        //? if <1.19 {
+        ServerHooks.chunkSent(event.getPlayer(), event.getWorld(), event.getWorld().getChunk(event.getPos().x, event.getPos().z));
+        //?} else {
         ServerHooks.chunkSent(event.getPlayer(), event.getLevel(), event.getChunk());
+        //?}
     }
 
     @SubscribeEvent
     public static void chunkUnwatch(ChunkWatchEvent.UnWatch event) {
+        //? if <1.19 {
+        ServerHooks.chunkUnwatched(event.getPlayer(), event.getWorld(), event.getPos());
+        //?} else {
         ServerHooks.chunkUnwatched(event.getPlayer(), event.getLevel(), event.getPos());
+        //?}
     }
 
     @SubscribeEvent
     public static void blockBreak(BlockEvent.BreakEvent event) {
         if (event.getPlayer() instanceof ServerPlayer player &&
+                //? if <1.19 {
+                !ServerHooks.beforeBlockBreak(event.getWorld(), event.getPos(), player)) event.setCanceled(true);
+                //?} else {
                 !ServerHooks.beforeBlockBreak(event.getLevel(), event.getPos(), player)) event.setCanceled(true);
+                //?}
     }
 
     @SubscribeEvent

@@ -1,51 +1,31 @@
-import org.gradle.api.tasks.bundling.AbstractArchiveTask
-import java.util.Properties
+plugins { id("net.rasanovum.rosetta.pack-metadata"); id("net.neoforged.moddev.legacyforge") }
 
-plugins { id("net.neoforged.moddev.legacyforge") }
-
-val versionProperties = Properties().apply {
-    file("gradle.properties").inputStream().use(::load)
-}
-fun prop(name: String): String = versionProperties.getProperty(name)
-    ?: rootProject.findProperty(name)?.toString()
-    ?: error("Missing property '$name'")
-
-version = prop("mod_version")
-base.archivesName = prop("archives_base_name")
+apply(from = rootProject.file("gradle/rosetta-common.gradle.kts"))
+fun prop(name: String): String = property(name).toString()
 
 legacyForge {
     version = prop("deps.forge")
-    mods { register("rosetta_library") { sourceSet(sourceSets.main.get()) } }
-}
-
-tasks.processResources {
-    val props = mapOf(
-        "version" to project.version,
-        "mod_description" to prop("mod_description"),
-        "mod_authors" to prop("mod_authors"),
-        "minecraft_version_range" to prop("deps.minecraft_range"),
-        "loader_version_range" to prop("deps.forge_range"),
-    )
-    inputs.properties(props)
-    filesMatching("META-INF/mods.toml") { expand(props) }
-    exclude("fabric.mod.json", "META-INF/neoforge.mods.toml")
-    exclude("rosetta.mixins.json")
-}
-
-val targetJavaVersion = prop("java_version").toInt()
-tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
-    options.release.set(targetJavaVersion)
-}
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-    withSourcesJar()
-}
-tasks.named<AbstractArchiveTask>("sourcesJar") { archiveClassifier.set("${project.name}-sources") }
-tasks.jar {
-    archiveClassifier.set(project.name)
-    exclude("net/rasanovum/rosetta/loaders/fabric/mixin/**")
+    if (prop("deps.minecraft") in setOf("1.18.2", "1.19.2")) {
+        accessTransformers.from(file("accesstransformer.cfg"))
+    }
+    mods { register(prop("mod_id")) { sourceSet(sourceSets.main.get()) } }
 }
 
 apply(from = rootProject.file("gradle/rosetta-publishing.gradle.kts"))
 apply(from = rootProject.file("gradle/rosetta-pack-metadata.gradle.kts"))
+
+apply(from = rootProject.file("gradle/rosetta-release-size.gradle.kts"))
+
+if (prop("deps.minecraft") in setOf("1.18.2", "1.19.2")) {
+    mixin {
+        add(sourceSets.main.get(), "rosetta.refmap.json")
+        config("rosetta-client.mixins.json")
+        if (prop("deps.minecraft") == "1.18.2") config("rosetta-legacy.mixins.json")
+    }
+    dependencies { annotationProcessor("org.spongepowered:mixin:0.8.7:processor") }
+    tasks.jar {
+        manifest.attributes["MixinConfigs"] = if (prop("deps.minecraft") == "1.18.2")
+            "rosetta-client.mixins.json,rosetta-legacy.mixins.json" else "rosetta-client.mixins.json"
+        from("accesstransformer.cfg") { into("META-INF") }
+    }
+}

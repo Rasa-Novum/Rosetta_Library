@@ -29,8 +29,11 @@ public final class NeoForgeClientHooks {
         NeoForge.EVENT_BUS.addListener(NeoForgeClientHooks::clientTick);
         NeoForge.EVENT_BUS.addListener(NeoForgeClientHooks::gameStopping);
         NeoForge.EVENT_BUS.addListener(NeoForgeClientHooks::renderHud);
-        //? if >=26.1
-        /^NeoForge.EVENT_BUS.addListener(NeoForgeClientHooks::renderWorldModern);^/
+        // 26.3 translucent stages run inside an active render pass; overlays upload at AfterLevel.
+        //? if >=26.3
+        /^NeoForge.EVENT_BUS.addListener((RenderLevelStageEvent.AfterLevel renderEvent) -> renderWorldModern(renderEvent));^/
+        //? if >=26.1 && <26.3
+        /^NeoForge.EVENT_BUS.addListener((RenderLevelStageEvent.AfterTranslucentBlocks renderEvent) -> renderWorldModern(renderEvent));^/
         //? if <26.1
         NeoForge.EVENT_BUS.addListener(NeoForgeClientHooks::renderWorld);
     }
@@ -55,13 +58,26 @@ public final class NeoForgeClientHooks {
         //?}
     }
 
-    //? if >=26.1
-    /^private static void renderWorldModern(RenderLevelStageEvent.AfterTranslucentBlocks event) {
+    //? if >=26.1 {
+    /^private static void renderWorldModern(RenderLevelStageEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level != null && minecraft.player != null) {
-            ClientRenderHooks.renderWorld(event.getPoseStack(), minecraft.level, minecraft.player,
-                    minecraft.getDeltaTracker().getGameTimeDeltaTicks(), null);
+            //? if >=26.3 {
+            // LevelRenderer has already restored the model-view stack at AfterLevel.
+            var modelView = com.mojang.blaze3d.systems.RenderSystem.getModelViewStack();
+            modelView.pushMatrix();
+            modelView.mul(event.getModelViewMatrix());
+            try {
+            //?}
+                ClientRenderHooks.renderWorld(event.getPoseStack(), minecraft.level, minecraft.player,
+                        minecraft.getDeltaTracker().getGameTimeDeltaTicks(), null);
+            //? if >=26.3 {
+            } finally {
+                modelView.popMatrix();
+            }
+            //?}
         }
     }^/
+    //?}
 }
 *///?}

@@ -3,6 +3,9 @@ package net.rasanovum.rosetta.util;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
+import net.minecraft.client.Camera;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -13,8 +16,68 @@ import net.minecraft.world.entity.player.Player;
 public final class ClientCompat {
     private ClientCompat() {}
 
+    public static boolean autoJump(Options options) {
+        //? if <1.19 {
+        /*return options.autoJump;
+        *///?} else {
+        return options.autoJump().get();
+        //?}
+    }
+
+    public static void setAutoJump(Options options, boolean enabled) {
+        //? if <1.19 {
+        /*options.autoJump = enabled;
+        *///?} else {
+        options.autoJump().set(enabled);
+        //?}
+    }
+
+    public static float fovEffectScale(Options options) {
+        //? if <1.19 {
+        /*return (float) options.fovEffectScale;
+        *///?} else {
+        return options.fovEffectScale().get().floatValue();
+        //?}
+    }
+
+    public static Screen screen(Minecraft minecraft) {
+        //? if >=26.2 {
+        /*return minecraft.gui.screen();
+        *///?} else {
+        return minecraft.screen;
+        //?}
+    }
+
+    public static void setScreen(Minecraft minecraft, Screen screen) {
+        //? if >=26.2 {
+        /*minecraft.gui.setScreen(screen);
+        *///?} else {
+        minecraft.setScreen(screen);
+        //?}
+    }
+
+    public static Camera mainCamera(Minecraft minecraft) {
+        //? if >=26.2 {
+        /*return minecraft.gameRenderer.mainCamera();
+        *///?} else {
+        return minecraft.gameRenderer.getMainCamera();
+        //?}
+    }
+
+    public static boolean isHudHidden(Minecraft minecraft) {
+        //? if >=26.2 {
+        /*return minecraft.gameRenderer.gameRenderState().guiRenderState.isHudHidden;
+        *///?} else {
+        return minecraft.options.hideGui;
+        //?}
+    }
+
     public static ResourceLocation getPlayerSkin(Minecraft minecraft, Player player) {
-        //? if <1.21 {
+        //? if <1.19 {
+        /*return player instanceof AbstractClientPlayer clientPlayer
+                ? clientPlayer.getSkinTextureLocation()
+                : net.minecraft.client.resources.DefaultPlayerSkin.getDefaultSkin(player.getUUID());
+        *///?} else if <1.21 {
         /*return minecraft.getSkinManager().getInsecureSkinLocation(player.getGameProfile());
         *///?} else {
         //? if >=26.1 {
@@ -56,6 +119,20 @@ public final class ClientCompat {
         /*image.setPixel(x, y, color);
         *///?} else {
         image.setPixelRGBA(x, y, color);
+        //?}
+    }
+
+    /** Stable mouse indices: left 0, right 1, middle 2, then additional buttons. */
+    public static int mouseButtonIndex(int nativeButton) {
+        //? if >=26.3 {
+        /*return switch (nativeButton) {
+            case 1 -> 0;
+            case 2 -> 2;
+            case 3 -> 1;
+            default -> nativeButton - 1;
+        };
+        *///?} else {
+        return nativeButton;
         //?}
     }
 
