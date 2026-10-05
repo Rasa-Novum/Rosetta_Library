@@ -8,9 +8,7 @@ run/
 out/
 /libs/
 *.log
-
-test/
-tests/
-/scripts/
 *.gz
-*.salive
+**/test/
+**/tests/
+/scripts
