@@ -23,3 +23,4 @@ Compatibility helpers for Minecraft mods built across Fabric, Forge, and NeoForg
 ```
 
 Rosetta Library uses [Stonecutter](https://stonecutter.kikugie.dev/) to maintain its version-specific implementations.
+Rosetta Library wouldn't have been possible without the inspiration and development of [Data Anchor](https://github.com/CorgiTaco-MC/Data-Anchor) by [CorgiTaco](https://github.com/CorgiTaco-MC)
