@@ -4,6 +4,7 @@
   "package": "net.rasanovum.rosetta.loaders.fabric.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": ["PlayerChunkSenderMixin"],
+  "client": ["ChunkMapTrackingMixin"],
   "server": ["ChunkMapTrackingMixin"],
   "injectors": {
     "defaultRequire": 1
