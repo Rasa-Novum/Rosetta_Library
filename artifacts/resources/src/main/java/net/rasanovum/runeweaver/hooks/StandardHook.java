@@ -24,7 +24,7 @@ public class StandardHook extends AbstractHook<Map<Identifier, Resource>> {
 
     @Override
     public Optional<List<Resource>> captureFiles(@NotNull Index index, String fileExt) {
-        if(index.ordinal() > 0)
+        if (index.ordinal() != -1 && !hasOrdinal(index.ordinal(), 1))
             return Optional.empty();
         Resource resource = this.attachedResources.get(VersionUtils.withSuffix(index.id(), fileExt));
         if(resource == null) return Optional.empty();
@@ -43,17 +43,22 @@ public class StandardHook extends AbstractHook<Map<Identifier, Resource>> {
 
     @Override
     public void insert(@NotNull Index index, List<Resource> resources, String fileExt, boolean overwrite) {
-        if(resources.isEmpty())
-            throw new IllegalArgumentException("Cannot insert empty resource list");
-        if(index.ordinal()+1 > 1)
-            throw new IllegalArgumentException("Resource type does not support ordinal indexing");
-        if(this.attachedResources.put(VersionUtils.withSuffix(index.id(), fileExt), resources.get(0)) == null && overwrite)
-            throw new IllegalStateException("Cannot overwrite resource: Resource with id " + index + " does not exists");
+        if (resources.size() != 1) {
+            throw new IllegalArgumentException("Expected one resource for " + index);
+        }
+        if (index.ordinal() != -1 && !hasOrdinal(index.ordinal(), 1)) {
+            throw new IllegalArgumentException("Resource type does not support ordinal " + index.ordinal());
+        }
+        Identifier id = VersionUtils.withSuffix(index.id(), fileExt);
+        if (overwrite && !attachedResources.containsKey(id)) {
+            throw new IllegalStateException("Cannot overwrite missing resource " + index);
+        }
+        attachedResources.put(id, resources.get(0));
     }
 
     @Override
     public void delete(Index index, String fileExt) {
-        if(index.ordinal() < 1)
+        if (index.ordinal() == -1 || hasOrdinal(index.ordinal(), 1))
             this.attachedResources.remove(VersionUtils.withSuffix(index.id(), fileExt));
     }
 }

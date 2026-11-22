@@ -24,7 +24,9 @@ public final class RosettaFabric implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTING.register(ServerHooks::serverStarting);
         ServerLifecycleEvents.SERVER_STARTED.register(ServerHooks::serverStarted);
         ServerLifecycleEvents.SERVER_STOPPING.register(ServerHooks::serverStopping);
-        ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resources, success) -> ServerHooks.dataPackReloaded(server));
+        ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resources, success) -> {
+            if (success) ServerHooks.dataPackReloaded(server);
+        });
         //? if >=26.1 {
         /*ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register((player, origin, level) ->
                 ServerHooks.playerChangedDimension(player));

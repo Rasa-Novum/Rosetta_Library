@@ -2,6 +2,7 @@ package net.rasanovum.runeweaver;
 
 
 import com.google.gson.JsonElement;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.rasanovum.runeweaver.entries.AbstractEntry;
 import net.rasanovum.runeweaver.entries.EventEntry;
@@ -10,8 +11,10 @@ import net.rasanovum.runeweaver.enums.DebugOption;
 import net.rasanovum.runeweaver.enums.ErrorPolicy;
 import net.rasanovum.runeweaver.enums.Lifetime;
 import net.rasanovum.runeweaver.hooks.AbstractHook;
+import net.rasanovum.runeweaver.hooks.NamespaceHook;
 import net.rasanovum.runeweaver.util.Index;
 import net.rasanovum.runeweaver.util.PlatformUtils;
+import net.rasanovum.runeweaver.util.VersionUtils;
 import net.rasanovum.runeweaver.util.functions.Event;
 import net.rasanovum.runeweaver.util.interfaces.ErrorMessageProvider;
 import net.rasanovum.runeweaver.util.interfaces.RuneweaverCodec;
@@ -34,11 +37,57 @@ import static net.rasanovum.runeweaver.util.RuneweaverUtil.*;
 public final class Runeweaver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("Runeweaver");
-    private static int debugOptionFlags = 0;
+    private static volatile int debugOptionFlags;
+    private static boolean debugDirectoryPrepared;
     private static final RuneweaverRegistry<RuneweaverEvent<?>> eventRegistry = new RuneweaverRegistry<>(RuneweaverEvent::uuid, RuneweaverEvent::priority);
     private static final RuneweaverRegistry<ResourceReference<?>> referenceRegistry = new RuneweaverRegistry<>(ResourceReference::getUuid, ResourceReference::getPriority);
 
     private static final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private static final Object REGISTRATION_LOCK = new Object();
+    private static volatile Dispatch dispatch = new Dispatch(List.of(), Set.of(), new String[0], new RuneweaverEventBuilder.ResourceFilePredicate[0], false);
+
+    private record Dispatch(List<AbstractEntry> entries, Set<Identifier> exactIds,
+                            String[] predicateExtensions, RuneweaverEventBuilder.ResourceFilePredicate[] filePredicates,
+                            boolean assertive) {
+        boolean mayMatch(Identifier id) {
+            if (assertive || exactIds.contains(id)) return true;
+            String path = VersionUtils.path(id);
+            for (String extension : predicateExtensions) {
+                if (path.endsWith(extension)) return true;
+            }
+            for (var predicate : filePredicates) {
+                if (predicate.matches(id)) return true;
+            }
+            return false;
+        }
+    }
+
+    private static void rebuildDispatch() {
+        List<AbstractEntry> entries = RuneweaverRuntime.merge(eventRegistry, referenceRegistry);
+        Set<Identifier> exactIds = new HashSet<>();
+        Set<String> predicateExtensions = new HashSet<>();
+        List<RuneweaverEventBuilder.ResourceFilePredicate> filePredicates = new ArrayList<>();
+        boolean assertive = false;
+        for (AbstractEntry entry : entries) {
+            if (entry instanceof ReferenceEntry<?> referenceEntry) {
+                var reference = referenceEntry.reference();
+                exactIds.add(VersionUtils.withSuffix(reference.getIndex().id(), reference.getCodec().extensionAndDot()));
+            } else if (entry instanceof EventEntry<?> eventEntry) {
+                var event = eventEntry.event();
+                assertive |= event.assertive();
+                String extension = event.codec().extensionAndDot();
+                if (event.resourcePredicate() instanceof RuneweaverEventBuilder.ExactResource exact) {
+                    exactIds.add(VersionUtils.withSuffix(exact.id(), extension));
+                } else if (event.resourcePredicate() instanceof RuneweaverEventBuilder.ResourceFilePredicate file) {
+                    filePredicates.add(file);
+                } else {
+                    predicateExtensions.add(extension);
+                }
+            }
+        }
+        dispatch = new Dispatch(entries, Set.copyOf(exactIds), predicateExtensions.toArray(String[]::new),
+                filePredicates.toArray(RuneweaverEventBuilder.ResourceFilePredicate[]::new), assertive);
+    }
 
     public static final int DEFAULT_PRIORITY = 1000;
 
@@ -66,10 +115,14 @@ public final class Runeweaver {
 
     public static <T> UUID registerEvent(RuneweaverEventBuilder<T> builder) {
         RuneweaverEvent<T> builtEvent = builder.build();
-        if(builtEvent.lifetime() == Lifetime.DEFERRED)
+        if (builtEvent.lifetime() == Lifetime.DEFERRED) {
             return eventRegistry.registerDeferred(builtEvent);
-        else
-            return eventRegistry.register(builtEvent);
+        }
+        synchronized (REGISTRATION_LOCK) {
+            UUID uuid = eventRegistry.register(builtEvent);
+            rebuildDispatch();
+            return uuid;
+        }
     }
 
     public static ResourceReference<JsonElement> registerReference(int priority, Index index, String referenceName) {
@@ -87,27 +140,51 @@ public final class Runeweaver {
 
     public static <T> ResourceReference<T> registerReference(ResourceReferenceBuilder<T> builder) {
         ResourceReference<T> ref = builder.build();
-        referenceRegistry.register(ref);
-        return ref;
+        synchronized (REGISTRATION_LOCK) {
+            referenceRegistry.register(ref);
+            rebuildDispatch();
+            return ref;
+        }
     }
 
     // EXTERNAL RUN METHODS
 
+    public static boolean hasHandlers() {
+        return !dispatch.entries().isEmpty();
+    }
+
+    public static boolean hasHandlers(Identifier id) {
+        return dispatch.mayMatch(id);
+    }
+
     public static <T> T processHook(AbstractHook<T> hook) {
-        lock.readLock().lock();
-        RuneweaverRuntime<T> runtime = new RuneweaverRuntime<>(hook, eventRegistry, referenceRegistry, LOGGER::error);
-        while(runtime.isRunning()) {
-            AbstractEntry entry = runtime.pop();
-            if(entry instanceof ReferenceEntry<?> referenceEntry)
-                handleReference(referenceEntry, runtime);
-            //noinspection rawtypes
-            else if(entry instanceof EventEntry eventEntry)
-                //noinspection unchecked
-                handleEvent(eventEntry, runtime);
-            else throw new IllegalStateException("Unexpected value: " + entry);
+        Dispatch current = dispatch;
+        if (current.entries().isEmpty() || (hook instanceof NamespaceHook namespace
+                && !current.mayMatch(namespace.resourceId()))) {
+            return hook.getAttachedResources();
         }
-        lock.readLock().unlock();
-        return hook.getAttachedResources();
+        lock.readLock().lock();
+        try {
+            current = dispatch;
+            if (current.entries().isEmpty() || (hook instanceof NamespaceHook namespace
+                    && !current.mayMatch(namespace.resourceId()))) {
+                return hook.getAttachedResources();
+            }
+            RuneweaverRuntime<T> runtime = new RuneweaverRuntime<>(hook, current.entries(), LOGGER::error);
+            while (runtime.isRunning()) {
+                AbstractEntry entry = runtime.pop();
+                if (entry instanceof ReferenceEntry<?> referenceEntry) {
+                    handleReference(referenceEntry, runtime);
+                } else if (entry instanceof EventEntry<?> eventEntry) {
+                    handleEvent(eventEntry, runtime);
+                } else {
+                    throw new IllegalStateException("Unexpected value: " + entry);
+                }
+            }
+            return hook.getAttachedResources();
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     private static <T, R> void handleReference(ReferenceEntry<R> referenceEntry, RuneweaverRuntime<T> runtime) {
@@ -138,8 +215,7 @@ public final class Runeweaver {
         List<Map.Entry<Index, Resource>> entries = runtime.getHook().getMatching(event.getWrappedPredicate());
         if(entries.isEmpty() && eventEntry.event().assertive()) throw new RuneweaverException("assertion on event '%s' failed", event.eventName());
         if(entries.isEmpty()) return;
-        if(event.lifetime() == Lifetime.ONCE)
-            removeEvent(event.uuid());
+        if (event.lifetime() == Lifetime.ONCE && !removeEvent(event.uuid())) return;
         entries.sort(Comparator
                 .comparing((Map.Entry<Index, Resource> o) -> o.getKey().id())
                 .thenComparingInt(o -> o.getKey().ordinal())
@@ -155,7 +231,7 @@ public final class Runeweaver {
             }
         }
         String ext = eventEntry.event().codec().extensionAndDot();
-        for(Index deletionIndex : markedForDeletion.stream().sorted().toList())
+        for(Index deletionIndex : markedForDeletion.stream().sorted(Comparator.reverseOrder()).toList())
             runtime.getHook().delete(deletionIndex, ext);
         logExtra("successfully finished processing event '{}' in {}", event.eventName(), timestamp(fileStartTime));
     }
@@ -219,11 +295,19 @@ public final class Runeweaver {
     }
 
     public static boolean removeEvent(UUID uuid) {
-        return eventRegistry.unregister(uuid);
+        synchronized (REGISTRATION_LOCK) {
+            if (!eventRegistry.unregister(uuid)) return false;
+            rebuildDispatch();
+            return true;
+        }
     }
 
     public static boolean removeReference(UUID uuid) {
-        return referenceRegistry.unregister(uuid);
+        synchronized (REGISTRATION_LOCK) {
+            if (!referenceRegistry.unregister(uuid)) return false;
+            rebuildDispatch();
+            return true;
+        }
     }
 
     /** @Deprecated Use {@link #hasEvent(UUID)} or {@link #hasReference(UUID)} instead**/
@@ -252,7 +336,7 @@ public final class Runeweaver {
 
     // DEBUGGING STUFF
 
-    public static void enableDebugOption(DebugOption option) {
+    public static synchronized void enableDebugOption(DebugOption option) {
         Runeweaver.debugOptionFlags |= option.getMask();
     }
 
@@ -269,26 +353,31 @@ public final class Runeweaver {
     }
 
     private static <T> void exportDebugFile(RuneweaverCodec<T> codec, T resource, String eventName, String resourceId, String extension, boolean patched) {
-        Path rawDir = PlatformUtils.getGameDir().resolve(".runeweaver");
+        Path rawDir = prepareDebugDirectory();
         Path patchDir;
         if(patched) patchDir = rawDir.resolve("patched");
         else patchDir = rawDir.resolve("unpatched");
         Path dir = patchDir.resolve(identifierToPathString(resourceId, extension));
         try {
             Files.createDirectories(dir);
-            FileOutputStream fos = new FileOutputStream(dir.resolve(stringToUsablePath(eventName)+extension).toFile());
-            fos.write(codec.export(resource).toByteArray());
-            fos.close();
+            try (FileOutputStream output = new FileOutputStream(dir.resolve(stringToUsablePath(eventName) + extension).toFile())) {
+                codec.export(resource).writeTo(output);
+            }
         } catch (IOException e) {
             LOGGER.error("failed to export debug file", e);
         }
     }
 
-    static {
-        try {
-            FileUtils.deleteDirectory(PlatformUtils.getGameDir().resolve(".runeweaver").toFile());
-        } catch (Exception e) {
-            LOGGER.error("failed to delete .runeweaver debug directory", e);
+    private static synchronized Path prepareDebugDirectory() {
+        Path path = PlatformUtils.getGameDir().resolve(".runeweaver");
+        if (!debugDirectoryPrepared) {
+            try {
+                FileUtils.deleteDirectory(path.toFile());
+            } catch (IOException e) {
+                LOGGER.error("Failed to clean Runeweaver debug directory", e);
+            }
+            debugDirectoryPrepared = true;
         }
+        return path;
     }
 }

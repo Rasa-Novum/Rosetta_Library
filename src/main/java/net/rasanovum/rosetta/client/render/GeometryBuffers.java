@@ -35,9 +35,9 @@ public final class GeometryBuffers implements AutoCloseable {
         /*if (buffer == null) buffer = new StagedVertexBuffer(() -> label, 4096);
         if (activeType != type) {
             endBatch();
-            activeType = type;
             draw = buffer.appendDraw(type.format(), type.primitiveTopology(),
                     type.sortOnUpload() ? VertexSorting.DISTANCE_TO_ORIGIN : null);
+            activeType = type;
         }
         return buffer.getVertexBuilder(draw);
         *///?} else {
@@ -58,25 +58,28 @@ public final class GeometryBuffers implements AutoCloseable {
         RenderSystem.assertOnRenderThread();
         //? if >=26.2 {
         /*if (activeType == null) return;
-        buffer.upload();
-        var info = buffer.getExecuteInfo(draw);
-        //? if >=26.3 {
-        if (info != null) {
-            var target = net.minecraft.client.Minecraft.getInstance().gameRenderer.mainRenderTarget();
-            var prepared = activeType.prepare();
-            var encoder = RenderSystem.getDevice().createCommandEncoder();
-            try (var pass = GpuCompat.renderPass(encoder, () -> label,
-                    target.getColorTextureView(), target.getDepthTextureView())) {
-                prepared.drawFromBuffer(info, pass);
+        try {
+            buffer.upload();
+            var info = buffer.getExecuteInfo(draw);
+            //? if >=26.3 {
+            if (info != null) {
+                var target = net.minecraft.client.Minecraft.getInstance().gameRenderer.mainRenderTarget();
+                var prepared = activeType.prepare();
+                var encoder = RenderSystem.getDevice().createCommandEncoder();
+                try (var pass = GpuCompat.renderPass(encoder, () -> label,
+                        target.getColorTextureView(), target.getDepthTextureView())) {
+                    prepared.drawFromBuffer(info, pass);
+                }
+                encoder.submit();
             }
-            encoder.submit();
+            //?} else {
+            if (info != null) activeType.prepare().drawFromBuffer(info);
+            //?}
+        } finally {
+            activeType = null;
+            draw = null;
+            buffer.endDraw();
         }
-        //?} else {
-        if (info != null) activeType.prepare().drawFromBuffer(info);
-        //?}
-        buffer.endDraw();
-        activeType = null;
-        draw = null;
         *///?} else {
         Minecraft.getInstance().renderBuffers().bufferSource().endBatch();
         //?}

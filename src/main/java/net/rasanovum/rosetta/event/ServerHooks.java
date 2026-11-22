@@ -17,11 +17,21 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public final class ServerHooks {
     private static final List<Callbacks> CALLBACKS = new CopyOnWriteArrayList<>();
 
+    private static final List<Callbacks> CHUNK_SENT_CALLBACKS = new CopyOnWriteArrayList<>();
+
     private ServerHooks() {}
 
     public static void register(Callbacks callbacks) {
         if (callbacks == null) throw new IllegalArgumentException("callbacks cannot be null");
         CALLBACKS.add(callbacks);
+        try {
+            if (callbacks.getClass().getMethod("onChunkSent", ServerPlayer.class, ServerLevel.class, LevelChunk.class)
+                    .getDeclaringClass() != Callbacks.class) {
+                CHUNK_SENT_CALLBACKS.add(callbacks);
+            }
+        } catch (NoSuchMethodException e) {
+            throw new AssertionError(e);
+        }
     }
 
     public static void playerJoined(ServerPlayer player) { CALLBACKS.forEach(c -> c.onPlayerJoin(player)); }
@@ -32,7 +42,10 @@ public final class ServerHooks {
     public static void serverStopping(MinecraftServer server) { CALLBACKS.forEach(c -> c.onServerStopping(server)); }
     public static void dataPackReloaded(MinecraftServer server) { CALLBACKS.forEach(c -> c.onDataPackReload(server)); }
     public static void playerChangedDimension(ServerPlayer player) { CALLBACKS.forEach(c -> c.onPlayerChangedDimension(player)); }
-    public static void chunkSent(ServerPlayer player, ServerLevel level, LevelChunk chunk) { CALLBACKS.forEach(c -> c.onChunkSent(player, level, chunk)); }
+    public static boolean hasChunkSentListeners() { return !CHUNK_SENT_CALLBACKS.isEmpty(); }
+    public static void chunkSent(ServerPlayer player, ServerLevel level, LevelChunk chunk) {
+        CHUNK_SENT_CALLBACKS.forEach(c -> c.onChunkSent(player, level, chunk));
+    }
     public static void chunkUnwatched(ServerPlayer player, ServerLevel level, ChunkPos pos) { CALLBACKS.forEach(c -> c.onChunkUnwatched(player, level, pos)); }
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) { CALLBACKS.forEach(c -> c.registerCommands(dispatcher)); }
 

@@ -4,7 +4,6 @@ package net.rasanovum.runeweaver.mixins;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.MultiPackResourceManager;
-import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.minecraft.server.packs.resources.Resource;
 import net.rasanovum.runeweaver.Runeweaver;
 import net.rasanovum.runeweaver.hooks.ListHook;
@@ -15,17 +14,17 @@ import org.spongepowered.asm.mixin.injection.At;
 import java.util.List;
 import java.util.Map;
 
-@Mixin({MultiPackResourceManager.class, ReloadableResourceManager.class})
+@Mixin(MultiPackResourceManager.class)
 public class ResourceManagerImplMixinArray {
 
     @ModifyReturnValue(method = "listResources", at = @At("RETURN"))
     private Map<Identifier, Resource> runRuneweaverEvents(Map<Identifier, Resource> original) {
-        return Runeweaver.processHook(new StandardHook(original));
+        return Runeweaver.hasHandlers() ? Runeweaver.processHook(new StandardHook(original)) : original;
     }
 
     @ModifyReturnValue(method = "listResourceStacks", at = @At("RETURN"))
     private Map<Identifier, List<Resource>> runListRuneweaverEvents(Map<Identifier, List<Resource>> original) {
-        return Runeweaver.processHook(new ListHook(original));
+        return Runeweaver.hasHandlers() ? Runeweaver.processHook(new ListHook(original)) : original;
     }
 }
 

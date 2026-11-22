@@ -6,8 +6,7 @@
   "compatibilityLevel": "${mixin_compatibility}",
   "mixins": [
     "NamespaceResourceManagerMixin",
-    "ResourceManagerImplMixinArray",
-    "ResourceManagerRegistryLoadTaskMixin"
+    "ResourceManagerImplMixinArray"
   ],
   "injectors": {
     "defaultRequire": 1

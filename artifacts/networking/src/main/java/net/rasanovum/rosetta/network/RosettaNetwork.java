@@ -6,8 +6,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.rasanovum.rosetta.util.RegistryCompat;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /** Packet registration and transport. */
@@ -38,7 +38,7 @@ public final class RosettaNetwork {
 
     public static final class Channel {
         private final String namespace;
-        private final Set<String> ids = new HashSet<>();
+        private final Set<String> ids = ConcurrentHashMap.newKeySet();
 
         private Channel(String namespace) {
             this.namespace = namespace;

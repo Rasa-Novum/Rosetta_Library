@@ -2,6 +2,7 @@ package net.rasanovum.rosetta.config;
 
 import com.google.gson.*;
 import eu.midnightdust.lib.config.*;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -18,18 +19,39 @@ import net.rasanovum.rosetta.config.mixin.ConfigEntryAccessor;
 *///?}
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public final class ConfigSync {
     public static final int MAX_LENGTH = 30000;
     private static final Gson JSON = new Gson();
-    private static final Map<String, Consumer<MinecraftServer>> SERVER_CHANGES = new HashMap<>();
+    private static final Map<String, Consumer<MinecraftServer>> SERVER_CHANGES = new ConcurrentHashMap<>();
     private static final ClassValue<List<Field>> SERVER_FIELDS = new ClassValue<>() {
         @Override protected List<Field> computeValue(Class<?> type) {
             return Arrays.stream(type.getFields()).filter(ConfigSync::isServerSetting).toList();
         }
     };
+    private static final ClassValue<EditAccess> EDIT_ACCESS = new ClassValue<>() {
+        @Override protected EditAccess computeValue(Class<?> type) {
+            int minimumLevel = Integer.MAX_VALUE;
+            boolean allowOwner = false;
+            for (Field field : fields(type)) {
+                ServerSetting setting = field.getAnnotation(ServerSetting.class);
+                minimumLevel = Math.min(minimumLevel, permissionLevel(setting));
+                allowOwner |= !setting.requireCheats();
+            }
+            return new EditAccess(minimumLevel, allowOwner);
+        }
+    };
+    private static final double DEFAULT_MIN = defaultMinimum();
     private static volatile MinecraftServer server;
+
+    private record EditAccess(int minimumLevel, boolean allowOwner) {
+        boolean allows(ServerPlayer player) {
+            return (minimumLevel != Integer.MAX_VALUE && EntityCompat.hasPermission(player, minimumLevel))
+                    || (allowOwner && isSingleplayerOwner(player));
+        }
+    }
 
     private ConfigSync() {}
 
@@ -55,7 +77,10 @@ public final class ConfigSync {
         SERVER_CHANGES.put(id, Objects.requireNonNull(callback));
     }
 
-    public static boolean onServerThread() { return server != null && server.isSameThread(); }
+    public static boolean onServerThread() {
+        MinecraftServer active = server;
+        return active != null && active.isSameThread();
+    }
 
     public static void changed(String id) {
         if (!onServerThread()) return;
@@ -99,10 +124,17 @@ public final class ConfigSync {
 
     private static boolean canEdit(ServerPlayer player, Field field) {
         ServerSetting setting = field.getAnnotation(ServerSetting.class);
-        int level = setting.requireCheats() ? Math.max(2, setting.permissionLevel()) : setting.permissionLevel();
-        if (EntityCompat.hasPermission(player, level)) return true;
-        if (setting.requireCheats()) return false;
+        return EntityCompat.hasPermission(player, permissionLevel(setting))
+                || (!setting.requireCheats() && isSingleplayerOwner(player));
+    }
+
+    private static int permissionLevel(ServerSetting setting) {
+        return setting.requireCheats() ? Math.max(2, setting.permissionLevel()) : setting.permissionLevel();
+    }
+
+    private static boolean isSingleplayerOwner(ServerPlayer player) {
         MinecraftServer active = EntityCompat.getPlayerServer(player);
+        if (active == null) return false;
         //? if >=26.1 {
         /*return active.isSingleplayerOwner(new NameAndId(player.getGameProfile()));
         *///?} else {
@@ -117,6 +149,7 @@ public final class ConfigSync {
     }
 
     private static String syncValues(String id, MidnightConfig config) {
+        EDIT_ACCESS.get(config.configClass);
         String values = snapshot(config).toString();
         if (values.equals("{}")) return null;
         if (values.length() > MAX_LENGTH) {
@@ -167,6 +200,47 @@ public final class ConfigSync {
         return values;
     }
 
+    private static double defaultMinimum() {
+        try {
+            return (double) MidnightConfig.Entry.class.getMethod("min").getDefaultValue();
+        } catch (NoSuchMethodException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    static void validate(Field field, Object value) {
+        MidnightConfig.Entry bounds = field.getAnnotation(MidnightConfig.Entry.class);
+        if (value instanceof List<?> list) {
+            for (Object element : list) {
+                if (element == null) throw new IllegalArgumentException("Null list element: " + field.getName());
+                validateNumber(field, bounds, element);
+            }
+        } else {
+            validateNumber(field, bounds, value);
+        }
+    }
+
+    private static void validateNumber(Field field, MidnightConfig.Entry bounds, Object value) {
+        if (!(value instanceof Number number)) return;
+        double numeric = number.doubleValue();
+        if (!Double.isFinite(numeric)) {
+            throw new IllegalArgumentException("Non-finite numeric value: " + field.getName());
+        }
+        if (bounds != null && ((bounds.min() != DEFAULT_MIN && numeric < bounds.min()) || numeric > bounds.max())) {
+            throw new IllegalArgumentException("Value outside permitted bounds: " + field.getName());
+        }
+    }
+
+    private static Set<String> readEditable(FriendlyByteBuf buffer) {
+        String[] names = JSON.fromJson(buffer.readUtf(MAX_LENGTH), String[].class);
+        if (names == null) return Set.of();
+        Set<String> editable = new LinkedHashSet<>();
+        for (String name : names) {
+            if (name != null) editable.add(name);
+        }
+        return Collections.unmodifiableSet(editable);
+    }
+
     public record Edit(String modId, String values) implements RosettaPacket {
         public Edit(FriendlyByteBuf buf) { this(buf.readUtf(64), buf.readUtf(MAX_LENGTH)); }
         @Override
@@ -175,7 +249,7 @@ public final class ConfigSync {
             String modId = packet.modId();
             String values = packet.values();
             MidnightConfig config = MidnightConfig.configInstances.get(modId);
-            if (config == null) return;
+            if (config == null || !EDIT_ACCESS.get(config.configClass).allows(sender)) return;
             if (values.isEmpty()) {
                 sync(modId, sender);
                 return;
@@ -187,6 +261,8 @@ public final class ConfigSync {
                     sync(modId, sender);
                     return;
                 }
+                if (decoded.isEmpty()) return;
+                decoded.forEach(ConfigSync::validate);
                 JsonObject combined = snapshot(config);
                 decoded.forEach((field, value) -> combined.add(field.getName(), JSON.toJsonTree(value)));
                 if (combined.toString().length() > MAX_LENGTH) throw new IllegalArgumentException("Combined config exceeds sync limit");
@@ -200,7 +276,7 @@ public final class ConfigSync {
     }
 
     public record Sync(String modId, String values, Set<String> editable) implements RosettaPacket {
-        public Sync(FriendlyByteBuf buf) { this(buf.readUtf(64), buf.readUtf(MAX_LENGTH), Set.of(JSON.fromJson(buf.readUtf(MAX_LENGTH), String[].class))); }
+        public Sync(FriendlyByteBuf buf) { this(buf.readUtf(64), buf.readUtf(MAX_LENGTH), readEditable(buf)); }
         @Override
         public void write(FriendlyByteBuf buf) { buf.writeUtf(modId, 64); buf.writeUtf(values, MAX_LENGTH); buf.writeUtf(JSON.toJson(editable), MAX_LENGTH); }
         public static void handle(Sync packet, Player player) { ClientSync.receive(packet); }
@@ -209,9 +285,9 @@ public final class ConfigSync {
     public static final class ClientSync extends MidnightConfig {
         private static final Map<Field, Object> LOCAL_VALUES = new HashMap<>();
         private static final Map<String, Set<String>> PERMISSIONS = new HashMap<>();
-        private static final Map<String, Runnable> CHANGES = new HashMap<>();
+        private static final Map<String, Runnable> CHANGES = new ConcurrentHashMap<>();
 
-        public static boolean playing() { return net.minecraft.client.Minecraft.getInstance().getConnection() != null; }
+        public static boolean playing() { return Minecraft.getInstance().getConnection() != null; }
         public static boolean canEdit(String id, Field field) { return !playing() || PERMISSIONS.getOrDefault(id, Set.of()).contains(field.getName()); }
         public static void onChange(String id, Runnable callback) { CHANGES.put(id, Objects.requireNonNull(callback)); }
         public static void changed(String id) {
@@ -224,16 +300,16 @@ public final class ConfigSync {
             if (config == null) return;
             Map<Field, Object> values = decode(config, packet.values);
             PERMISSIONS.put(packet.modId, packet.editable);
-            if (!net.minecraft.client.Minecraft.getInstance().hasSingleplayerServer()) {
+            if (!Minecraft.getInstance().hasSingleplayerServer()) {
                 values.forEach((field, value) -> LOCAL_VALUES.putIfAbsent(field, read(field)));
                 values.forEach(ConfigSync::set);
             }
             entries.values().stream().filter(info -> packet.modId.equals(info.modid) && isServerSetting(info.field))
                     .forEach(ClientSync::resetEntry);
             //? if >=26.2 {
-            /*var currentScreen = net.minecraft.client.Minecraft.getInstance().gui.screen();
+            /*var currentScreen = Minecraft.getInstance().gui.screen();
             *///?} else {
-            var currentScreen = net.minecraft.client.Minecraft.getInstance().screen;
+            var currentScreen = Minecraft.getInstance().screen;
             //?}
             if (currentScreen instanceof MidnightConfigScreen screen
                     && packet.modId.equals(screen.modid)) {
@@ -306,9 +382,19 @@ public final class ConfigSync {
                     if (!Objects.equals(value, read(info.field))) changes.add(info.fieldName, JSON.toJsonTree(value));
                 }
             }
+            Minecraft client = Minecraft.getInstance();
+            MinecraftServer singleplayer = client.getSingleplayerServer();
+            MidnightConfig config = configInstances.get(id);
+            if (singleplayer != null && config != null && !fields(config.configClass).isEmpty()) {
+                singleplayer.execute(() -> {
+                    MidnightConfig.write(id);
+                    client.execute(() -> changed(id));
+                });
+            } else {
+                MidnightConfig.write(id);
+                changed(id);
+            }
             if (changes.size() > 0) RosettaNetwork.sendToServer(new Edit(id, changes.toString()));
-            MidnightConfig.write(id);
-            changed(id);
         }
     }
 }

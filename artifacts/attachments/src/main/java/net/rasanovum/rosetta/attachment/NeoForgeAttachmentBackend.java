@@ -32,33 +32,15 @@ final class NeoForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
         String registeredPath = namespace + "__" + kind.path + "__" + path.replace('/', '_');
         Supplier<AttachmentType<T>> type = TYPES.register(registeredPath, () -> {
             AttachmentType.Builder<T> builder = AttachmentType.builder(factory);
-            serialize(builder, codec);
+            //? if >=26.1 {
+            /^builder.serialize(codec.fieldOf("value"));^/
+            //?} else {
+            builder.serialize(codec);
+            //?}
             if (copyOnRespawn) builder.copyOnDeath();
             return builder.build();
         });
         return new NeoForgeAttachmentBackend<>(type);
-    }
-
-    private static <T> void serialize(AttachmentType.Builder<T> builder, Codec<T> codec) {
-        try {
-            java.lang.reflect.Method method = java.util.Arrays.stream(builder.getClass().getMethods())
-                    .filter(candidate -> candidate.getName().equals("serialize") && candidate.getParameterCount() == 1)
-                    .filter(candidate -> candidate.getParameterTypes()[0].getName().equals(
-                            "com.mojang.serialization.Codec"))
-                    .findFirst().orElse(null);
-            Object serializer = codec;
-            if (method == null) {
-                serializer = codec.fieldOf("value");
-                method = java.util.Arrays.stream(builder.getClass().getMethods())
-                        .filter(candidate -> candidate.getName().equals("serialize") && candidate.getParameterCount() == 1)
-                        .filter(candidate -> candidate.getParameterTypes()[0].getName().equals(
-                                "com.mojang.serialization.MapCodec"))
-                        .findFirst().orElseThrow();
-            }
-            method.invoke(builder, serializer);
-        } catch (ReflectiveOperationException exception) {
-            throw new IllegalStateException("Cannot configure NeoForge attachment persistence", exception);
-        }
     }
 
     private IAttachmentHolder holder(O owner) {

@@ -3,7 +3,9 @@ package net.rasanovum.runeweaver.rosetta;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.resources.Identifier;
+import net.rasanovum.rosetta.event.ClientHooks;
 import net.rasanovum.rosetta.event.ServerHooks;
+import net.rasanovum.rosetta.loaders.Platform;
 import net.rasanovum.rosetta.network.RosettaNetwork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** Registry and lifecycle service for explicitly registered asset channels. */
 public final class AssetChannels {
-    private static final Logger LOGGER = LoggerFactory.getLogger("Runeweaver/Rosetta Assets");
+    static final Logger LOGGER = LoggerFactory.getLogger("Runeweaver/Rosetta Assets");
     private static final Map<Identifier, AssetChannel> CHANNELS = new ConcurrentHashMap<>();
     private static volatile boolean initialized;
 
@@ -23,11 +25,21 @@ public final class AssetChannels {
         if (initialized) return;
         synchronized (AssetChannels.class) {
             if (initialized) return;
-            RosettaNetwork.channel(RuneweaverRosetta.MOD_ID).clientbound(
-                    "asset_snapshot_s2c", AssetSnapshotS2C.class,
-                    AssetSnapshotS2C::new, AssetSnapshotS2C::handle
-            );
+            RosettaNetwork.channel(RuneweaverRosetta.MOD_ID)
+                    .clientbound("asset_snapshot_s2c", AssetSnapshotS2C.class, AssetSnapshotS2C::new, AssetSnapshotS2C::handle)
+                    .clientbound("asset_snapshot_chunk_s2c", AssetSnapshotS2C.Chunk.class, AssetSnapshotS2C.Chunk::new,
+                            (chunk, player) -> {
+                                AssetChannel channel = CHANNELS.get(chunk.channel());
+                                if (channel != null) channel.receiveClientChunk(chunk);
+                            });
             ServerHooks.register(new Hooks());
+            if (Platform.INSTANCE.isClientSide()) {
+                ClientHooks.register(new ClientHooks.Callbacks() {
+                    @Override public void onDisconnect() {
+                        CHANNELS.values().forEach(AssetChannel::clearClientTransfer);
+                    }
+                });
+            }
             initialized = true;
         }
     }

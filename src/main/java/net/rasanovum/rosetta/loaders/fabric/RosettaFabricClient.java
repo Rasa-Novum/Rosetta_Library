@@ -48,12 +48,12 @@ public final class RosettaFabricClient implements ClientModInitializer {
 
         //? if >=26.1 {
         /*HudElementRegistry.addLast(RegistryCompat.getLocation("rosetta_library:callbacks"), (graphics, deltaTracker) ->
-                ClientRenderHooks.renderHud(graphics, deltaTracker.getGameTimeDeltaTicks()));
+                ClientRenderHooks.renderHud(graphics, deltaTracker.getGameTimeDeltaPartialTick(false)));
         LevelRenderEvents.END_MAIN.register(context -> {
             Minecraft minecraft = Minecraft.getInstance();
             if (minecraft.player != null && minecraft.level != null) {
                 ClientRenderHooks.renderWorld(context.poseStack(), minecraft.level, minecraft.player,
-                        minecraft.getDeltaTracker().getGameTimeDeltaTicks(), null);
+                        minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false), null);
             }
         });
         *///?} else {
@@ -61,7 +61,7 @@ public final class RosettaFabricClient implements ClientModInitializer {
             //? if <1.21 {
             /*float tickDelta = deltaTracker;
             *///?} else {
-            float tickDelta = deltaTracker.getGameTimeDeltaTicks();
+            float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(false);
             //?}
             ClientRenderHooks.renderHud(graphics, tickDelta);
         });
@@ -71,7 +71,7 @@ public final class RosettaFabricClient implements ClientModInitializer {
                 //? if <1.21 {
                 /*float tickDelta = context.tickDelta();
                 *///?} else {
-                float tickDelta = minecraft.getTimer().getGameTimeDeltaTicks();
+                float tickDelta = minecraft.getTimer().getGameTimeDeltaPartialTick(false);
                 //?}
                 ClientRenderHooks.renderWorld(context.matrixStack(), minecraft.level, minecraft.player,
                         tickDelta, context.frustum());

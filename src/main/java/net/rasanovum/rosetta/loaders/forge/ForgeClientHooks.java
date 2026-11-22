@@ -23,8 +23,10 @@ public final class ForgeClientHooks {
 
     @SubscribeEvent
     public static void clientSetup(FMLClientSetupEvent event) {
-        RosettaEntrypoints.initializeClients();
-        ClientHooks.clientInitialized();
+        event.enqueueWork(() -> {
+            RosettaEntrypoints.initializeClients();
+            ClientHooks.clientInitialized();
+        });
         MinecraftForge.EVENT_BUS.addListener(ForgeClientHooks::playerLogin);
         MinecraftForge.EVENT_BUS.addListener(ForgeClientHooks::playerLogout);
         MinecraftForge.EVENT_BUS.addListener(ForgeClientHooks::clientTick);

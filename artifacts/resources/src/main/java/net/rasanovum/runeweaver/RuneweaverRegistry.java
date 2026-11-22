@@ -20,87 +20,88 @@ public class RuneweaverRegistry<T> {
     }
     
     public UUID register(T value) {
-        lock.writeLock().lock();
-
-        int priority = priorityFunction.apply(value);
         UUID uuid = idFunction.apply(value);
-        valuesById.put(uuid, value);
-        List<T> componentSet;
-        if(valuesByPriority.get(priority) == null) componentSet = new ArrayList<>();
-        else componentSet = valuesByPriority.get(priority);
-        componentSet.add(value);
-        valuesByPriority.put(priority, componentSet);
-
-        lock.writeLock().unlock();
-        return uuid;
+        int priority = priorityFunction.apply(value);
+        lock.writeLock().lock();
+        try {
+            T previous = valuesById.get(uuid);
+            if (previous != null) removeFromPriority(previous);
+            valuesById.put(uuid, value);
+            valuesByPriority.computeIfAbsent(priority, ignored -> new ArrayList<>()).add(value);
+            return uuid;
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     public UUID registerDeferred(T value) {
-        lock.writeLock().lock();
-
         UUID uuid = idFunction.apply(value);
-        deferredValuesById.put(uuid, value);
-
-        lock.writeLock().unlock();
-        return uuid;
+        lock.writeLock().lock();
+        try {
+            deferredValuesById.put(uuid, value);
+            return uuid;
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
-    
+
     public Optional<T> pullDeferred(UUID uuid) {
         lock.writeLock().lock();
-
-        T value = deferredValuesById.remove(uuid);
-
-        lock.writeLock().unlock();
-        return Optional.ofNullable(value);
+        try {
+            return Optional.ofNullable(deferredValuesById.remove(uuid));
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     public Optional<T> get(UUID uuid) {
         lock.readLock().lock();
-
-        T value = valuesById.get(uuid);
-
-        lock.readLock().unlock();
-        return Optional.ofNullable(value);
+        try {
+            return Optional.ofNullable(valuesById.get(uuid));
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     public boolean contains(UUID uuid) {
         lock.readLock().lock();
-
-        boolean contains = valuesById.containsKey(uuid);
-
-        lock.readLock().unlock();
-        return contains;
-    }
-    
-    public boolean unregister(UUID value) {
-        lock.writeLock().lock();
-        
-        T val = valuesById.remove(value);
-        boolean returnVal;
-        if(val == null)
-            returnVal = false;
-        else {
-            returnVal = true;
-            int priority = priorityFunction.apply(val);
-            List<T> componentSet = valuesByPriority.get(priority);
-            boolean removed = componentSet.remove(val);
-            if(!removed)
-                throw new IllegalStateException("Found component by UUID, but not present by priority");
+        try {
+            return valuesById.containsKey(uuid);
+        } finally {
+            lock.readLock().unlock();
         }
-        
-        lock.writeLock().unlock();
-        return returnVal;
     }
-    
+
+    public boolean unregister(UUID uuid) {
+        lock.writeLock().lock();
+        try {
+            T value = valuesById.get(uuid);
+            if (value == null) return false;
+            removeFromPriority(value);
+            valuesById.remove(uuid);
+            return true;
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private void removeFromPriority(T value) {
+        int priority = priorityFunction.apply(value);
+        List<T> values = valuesByPriority.get(priority);
+        if (values == null || !values.remove(value)) {
+            throw new IllegalStateException("Found component by UUID, but not present by priority");
+        }
+        if (values.isEmpty()) valuesByPriority.remove(priority);
+    }
+
     public SortedMap<Integer, List<T>> captureSnapshot() {
         lock.readLock().lock();
-        
-        SortedMap<Integer, List<T>> snapshot = new TreeMap<>();
-        for(Map.Entry<Integer, List<T>> entry : valuesByPriority.entrySet()) {
-            snapshot.put(entry.getKey(), List.copyOf(entry.getValue()));
+        try {
+            SortedMap<Integer, List<T>> snapshot = new TreeMap<>();
+            valuesByPriority.forEach((priority, values) -> snapshot.put(priority, List.copyOf(values)));
+            return snapshot;
+        } finally {
+            lock.readLock().unlock();
         }
-        
-        lock.readLock().unlock();
-        return snapshot;
     }
 }

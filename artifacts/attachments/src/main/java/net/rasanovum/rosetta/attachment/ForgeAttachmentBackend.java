@@ -16,6 +16,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.chunk.ImposterProtoChunk;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityManager;
@@ -32,7 +35,7 @@ import net.rasanovum.rosetta.Rosetta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
+public final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
     private static final ResourceLocation PROVIDER_ID = new ResourceLocation(Rosetta.MOD_ID, "attachments");
     private static final Capability<Store> CAPABILITY = CapabilityManager.get(new CapabilityToken<>() {});
     private static final Map<Object, Store> STORES = java.util.Collections.synchronizedMap(new WeakHashMap<>());
@@ -65,18 +68,31 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
     }
 
     private static <O> void attach(AttachCapabilitiesEvent<O> event) {
-        event.addCapability(PROVIDER_ID, new Provider(event.getObject()));
+        Provider provider = new Provider(event.getObject());
+        event.addCapability(PROVIDER_ID, provider);
+        event.addListener(provider::invalidate);
         // The weak map retains populated stores through capability invalidation for PlayerEvent.Clone.
     }
 
-    private static Store store(Object owner) { return STORES.computeIfAbsent(owner, ignored -> new Store()); }
+    private static Object storageOwner(Object owner) {
+        return owner instanceof ImposterProtoChunk imposter ? imposter.getWrapped() : owner;
+    }
+
+    private static Store store(Object owner) {
+        return STORES.computeIfAbsent(storageOwner(owner), ignored -> new Store());
+    }
+
+    public static void promoteChunk(ProtoChunk source, LevelChunk target) {
+        Store attachments = STORES.get(storageOwner(source));
+        if (attachments != null) STORES.put(target, attachments);
+    }
     public Optional<T> find(O owner) {
-        Store store = STORES.get(owner);
+        Store store = STORES.get(storageOwner(owner));
         return store == null ? Optional.empty() : store.find(definition);
     }
     public void set(O owner, T value) { store(owner).set(definition, value); AttachmentDirty.mark(owner); }
     public void remove(O owner) {
-        Store store = STORES.get(owner);
+        Store store = STORES.get(storageOwner(owner));
         if (store != null) store.remove(definition);
         AttachmentDirty.mark(owner);
     }
@@ -86,7 +102,7 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
     public static void loadChunk(ChunkDataEvent.Load event) {
         if (event.getData().contains(Rosetta.MOD_ID + ":attachments", CompoundTag.TAG_COMPOUND)) {
             CompoundTag tag = event.getData().getCompound(Rosetta.MOD_ID + ":attachments");
-            Store store = STORES.get(event.getChunk());
+            Store store = STORES.get(storageOwner(event.getChunk()));
             if (store != null) store.deserialize(tag);
             else if (!tag.isEmpty()) store(event.getChunk()).deserialize(tag);
         }
@@ -94,7 +110,7 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
 
     @SubscribeEvent
     public static void saveChunk(ChunkDataEvent.Save event) {
-        Store store = STORES.get(event.getChunk());
+        Store store = STORES.get(storageOwner(event.getChunk()));
         if (store != null) {
             CompoundTag tag = store.serialize();
             if (tag.isEmpty()) event.getData().remove(Rosetta.MOD_ID + ":attachments");
@@ -106,7 +122,10 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
     public static void clonePlayer(PlayerEvent.Clone event) {
         if (!(event.getEntity() instanceof ServerPlayer)) return;
         Store from = STORES.get(event.getOriginal());
-        if (from != null) from.copyRespawnValues(event.getEntity());
+        if (from != null) {
+            CompoundTag copied = from.serialize(event.isWasDeath());
+            if (!copied.isEmpty()) store(event.getEntity()).merge(copied);
+        }
     }
 
     private record Definition<T>(String id, Supplier<T> factory, Codec<T> codec, boolean copyOnRespawn) {}
@@ -147,13 +166,24 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
 
         synchronized void deserialize(CompoundTag tag) { unread = tag.isEmpty() ? null : tag.copy(); }
 
-        synchronized CompoundTag serialize() {
+        CompoundTag serialize() {
+            return serialize(false);
+        }
+
+        synchronized CompoundTag serialize(boolean death) {
             CompoundTag result = new CompoundTag();
-            if (values != null) values.forEach((rawDefinition, value) -> encode(result, rawDefinition, value));
+            if (values != null) {
+                values.forEach((definition, value) -> {
+                    if (!death || definition.copyOnRespawn()) encode(result, definition, value);
+                });
+            }
             // Keep data for unknown definitions and values that could not be decoded.
             if (unread != null) {
                 for (String id : unread.getAllKeys()) {
-                    if (!result.contains(id)) result.put(id, unread.get(id).copy());
+                    Definition<?> definition = DEFINITIONS.get(id);
+                    if ((!death || (definition != null && definition.copyOnRespawn())) && !result.contains(id)) {
+                        result.put(id, unread.get(id).copy());
+                    }
                 }
             }
             return result;
@@ -166,25 +196,41 @@ final class ForgeAttachmentBackend<O, T> implements AttachmentBackend<O, T> {
             result.put(definition.id(), tag);
         }
 
-        synchronized void copyRespawnValues(Object targetOwner) {
-            for (Definition<?> definition : DEFINITIONS.values()) {
-                if (definition.copyOnRespawn()) copyValue(targetOwner, definition);
+        synchronized void merge(CompoundTag copied) {
+            if (values != null) {
+                values.keySet().removeIf(definition -> copied.contains(definition.id()));
             }
-        }
-
-        private <T> void copyValue(Object targetOwner, Definition<T> definition) {
-            find(definition).ifPresent(value -> store(targetOwner).set(definition, value));
+            if (unread == null) unread = new CompoundTag();
+            for (String id : copied.getAllKeys()) unread.put(id, copied.get(id).copy());
         }
     }
 
-    private record Provider(Object owner) implements ICapabilitySerializable<CompoundTag> {
-        public <C> @NotNull LazyOptional<C> getCapability(@NotNull Capability<C> cap, @Nullable Direction side) {
-            return cap == CAPABILITY ? LazyOptional.of(() -> store(owner)).cast() : LazyOptional.empty();
+    private static final class Provider implements ICapabilitySerializable<CompoundTag> {
+        private final Object owner;
+        private LazyOptional<Store> capability;
+
+        private Provider(Object owner) {
+            this.owner = owner;
         }
+
+        public synchronized <C> @NotNull LazyOptional<C> getCapability(@NotNull Capability<C> cap, @Nullable Direction side) {
+            if (cap != CAPABILITY) return LazyOptional.empty();
+            if (capability == null) capability = LazyOptional.of(() -> store(owner));
+            return capability.cast();
+        }
+
+        private synchronized void invalidate() {
+            if (capability == null) return;
+            LazyOptional<Store> previous = capability;
+            capability = null;
+            previous.invalidate();
+        }
+
         public CompoundTag serializeNBT() {
-            Store existing = STORES.get(owner);
+            Store existing = STORES.get(storageOwner(owner));
             return existing == null ? new CompoundTag() : existing.serialize();
         }
+
         public void deserializeNBT(CompoundTag tag) {
             if (!tag.isEmpty()) store(owner).deserialize(tag);
         }

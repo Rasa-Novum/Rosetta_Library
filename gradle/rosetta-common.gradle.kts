@@ -1,6 +1,8 @@
 import java.util.Properties
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.language.jvm.tasks.ProcessResources
 
@@ -45,12 +47,17 @@ tasks.named<ProcessResources>("processResources") {
             filter { line: String -> line.takeUnless { it.contains("PictureInPictureRendererAccessor") } }
         }
     }
+    if (loader != "forge") {
+        filesMatching("rosetta-common.mixins.json") {
+            filter { line: String -> line.takeUnless { it.contains("rosetta.refmap.json") } }
+        }
+    }
     inputs.property("legacyResourceHooks", prop("deps.minecraft") == "1.18.2")
     if (prop("deps.minecraft") == "1.18.2") {
         filesMatching(listOf("runeweaver.mixins.json", "runeweaver.forge.mixins.json")) {
             filter { line: String ->
                 when {
-                    line.contains("ResourceManagerImplMixinArray") || line.contains("ResourceManagerRegistryLoadTaskMixin") -> null
+                    line.contains("ResourceManagerImplMixinArray") -> null
                     line.contains("NamespaceResourceManagerMixin") -> line.replace("\",", "\"")
                     else -> line
                 }
@@ -62,7 +69,11 @@ tasks.named<ProcessResources>("processResources") {
             when {
                 line.contains("LegacyClientShutdownMixin") && (loader != "forge" || prop("deps.minecraft") != "1.18.2") -> null
                 line.contains("LegacyCreativeTabMixin") && prop("deps.minecraft") !in setOf("1.18.2", "1.19.2") -> null
-                line.contains("LegacyCreativeTabMixin") -> line.replace("\",", "\"")
+                line.contains("LegacyCreativeTabMixin") && !prop("deps.minecraft").startsWith("26.") ->
+                    line.replace("\",", "\"")
+                line.contains("AbstractTextureSamplerAccessor") && !prop("deps.minecraft").startsWith("26.") -> null
+                line.contains("AbstractTextureSamplerAccessor") && prop("deps.minecraft") != "26.3" ->
+                    line.replace("\",", "\"")
                 line.contains("rosetta.refmap.json") && (loader != "forge" || prop("deps.minecraft") !in setOf("1.18.2", "1.19.2")) -> null
                 else -> line
             }
@@ -94,9 +105,28 @@ tasks.named<ProcessResources>("processResources") {
     }
     inputs.properties(props)
     filesMatching(listOf("fabric.mod.json", "META-INF/mods.toml", "META-INF/neoforge.mods.toml",
-        "runeweaver.mixins.json", "runeweaver.forge.mixins.json", "rosetta-client.mixins.json")) { expand(props) }
+        "runeweaver.mixins.json", "runeweaver.forge.mixins.json", "rosetta-client.mixins.json",
+        "rosetta-attachments.forge.mixins.json", "rosetta-common.mixins.json")) { expand(props) }
+    if (loader != "forge") exclude("rosetta-attachments.forge.mixins.json")
     if (loader != "fabric") exclude("fabric.mod.json")
     if (loader != "forge") exclude("META-INF/mods.toml")
     if (loader != "neoforge") exclude("META-INF/neoforge.mods.toml")
     if (loader != "fabric" && module in setOf("core", "config")) exclude("rosetta.mixins.json")
+}
+
+if (module in setOf("core", "config", "networking")) {
+    repositories { mavenCentral() }
+    dependencies {
+        "testImplementation"(platform("org.junit:junit-bom:5.10.2"))
+        "testImplementation"("org.junit.jupiter:junit-jupiter")
+        "testRuntimeOnly"("org.junit.platform:junit-platform-launcher")
+    }
+    tasks.named<Test>("test") { useJUnitPlatform() }
+    configure<SourceSetContainer> {
+        val mainSourceSet = named("main")
+        named("test") {
+            compileClasspath += mainSourceSet.get().compileClasspath + mainSourceSet.get().output
+            runtimeClasspath += mainSourceSet.get().runtimeClasspath + mainSourceSet.get().output
+        }
+    }
 }

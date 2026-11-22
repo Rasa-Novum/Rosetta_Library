@@ -170,7 +170,8 @@ public final class NbtCompat {
         //? if >=26.1 {
         /*return list.getIntOr(index, def);
         *///?} else {
-        return list.getInt(index);
+        return index >= 0 && index < list.size() && list.getElementType() == CompoundTag.TAG_INT
+                ? list.getInt(index) : def;
         //?}
     }
 }

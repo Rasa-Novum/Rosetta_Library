@@ -55,8 +55,10 @@ public class GuiCompat {
     /*private static final java.util.Deque<int[]> SCISSORS = new java.util.ArrayDeque<>();
 
     private static class LegacyGradient extends net.minecraft.client.gui.GuiComponent {
+        private static final LegacyGradient INSTANCE = new LegacyGradient();
+
         static void draw(GuiGraphics pose, int x1, int y1, int x2, int y2, int top, int bottom) {
-            new LegacyGradient().fillGradient(pose, x1, y1, x2, y2, top, bottom);
+            INSTANCE.fillGradient(pose, x1, y1, x2, y2, top, bottom);
         }
     }
     *///?}
@@ -209,7 +211,7 @@ public class GuiCompat {
 
     public static void drawCenteredString(GuiGraphics guiGraphics, Font font, Component text, int x, int y, int color) {
         //? if >=26.1 {
-        /*guiGraphics.text(font, text, x - font.width(text) / 2, y, opaque(color), false);
+        /*guiGraphics.text(font, text, x - font.width(text) / 2, y, opaque(color), true);
         *///?} else {
         //? if <1.20 {
         /*net.minecraft.client.gui.GuiComponent.drawCenteredString(guiGraphics, font, text, x, y, color);
@@ -221,7 +223,7 @@ public class GuiCompat {
 
     public static void drawCenteredString(GuiGraphics guiGraphics, Font font, String text, int x, int y, int color) {
         //? if >=26.1 {
-        /*guiGraphics.text(font, text, x - font.width(text) / 2, y, opaque(color), false);
+        /*guiGraphics.text(font, text, x - font.width(text) / 2, y, opaque(color), true);
         *///?} else {
         //? if <1.20 {
         /*net.minecraft.client.gui.GuiComponent.drawCenteredString(guiGraphics, font, text, x, y, color);
@@ -288,13 +290,11 @@ public class GuiCompat {
         /*guiGraphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, texture, x, y, u, v, width, height, texWidth, texHeight, color);
         *///?} else {
         applyShaderColor(color);
-        //? if <1.20 {
-        /*com.mojang.blaze3d.systems.RenderSystem.setShaderTexture(0, texture);
-        net.minecraft.client.gui.GuiComponent.blit(guiGraphics, x, y, (float) u, (float) v, width, height, texWidth, texHeight);
-        *///?} else {
-        guiGraphics.blit(texture, x, y, u, v, width, height, texWidth, texHeight);
-        //?}
-        resetShaderColor();
+        try {
+            blit(guiGraphics, texture, x, y, u, v, width, height, texWidth, texHeight);
+        } finally {
+            resetShaderColor();
+        }
         //?}
     }
 
@@ -316,13 +316,11 @@ public class GuiCompat {
         /*guiGraphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, texture, x, y, (float) u, (float) v, width, height, uWidth, vHeight, texWidth, texHeight, color);
         *///?} else {
         applyShaderColor(color);
-        //? if <1.20 {
-        /*com.mojang.blaze3d.systems.RenderSystem.setShaderTexture(0, texture);
-        net.minecraft.client.gui.GuiComponent.blit(guiGraphics, x, y, width, height, (float) u, (float) v, uWidth, vHeight, texWidth, texHeight);
-        *///?} else {
-        guiGraphics.blit(texture, x, y, width, height, u, v, uWidth, vHeight, texWidth, texHeight);
-        //?}
-        resetShaderColor();
+        try {
+            blit(guiGraphics, texture, x, y, width, height, u, v, uWidth, vHeight, texWidth, texHeight);
+        } finally {
+            resetShaderColor();
+        }
         //?}
     }
 
@@ -468,11 +466,14 @@ public class GuiCompat {
     }
 
     //? if <1.20 {
-    /*private static LegacyTooltipScreen legacyTooltipScreen() {
-        var minecraft = net.minecraft.client.Minecraft.getInstance();
-        var screen = new LegacyTooltipScreen();
-        screen.init(minecraft, minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight());
-        return screen;
+    /*private static final LegacyTooltipScreen LEGACY_TOOLTIP_SCREEN = new LegacyTooltipScreen();
+
+    private static LegacyTooltipScreen legacyTooltipScreen() {
+        var minecraft = Minecraft.getInstance();
+        int width = minecraft.getWindow().getGuiScaledWidth();
+        int height = minecraft.getWindow().getGuiScaledHeight();
+        LEGACY_TOOLTIP_SCREEN.prepare(minecraft, width, height);
+        return LEGACY_TOOLTIP_SCREEN;
     }
 
     private static final class LegacyTooltipScreen extends net.minecraft.client.gui.screens.Screen {
@@ -480,18 +481,17 @@ public class GuiCompat {
             super(Component.empty());
         }
 
+        private void prepare(Minecraft client, int width, int height) {
+            if (minecraft != client || this.width != width || this.height != height) {
+                init(client, width, height);
+            }
+        }
+
         private void hover(com.mojang.blaze3d.vertex.PoseStack pose, Style style, int x, int y) {
             renderComponentHoverEffect(pose, style, x, y);
         }
     }
     *///?}
-
-    private static int withAlpha(int color, float alpha) {
-        int sourceAlpha = (color >>> 24) & 0xFF;
-        if (sourceAlpha == 0) sourceAlpha = 0xFF;
-        int combinedAlpha = Math.max(0, Math.min(255, Math.round(sourceAlpha * alpha)));
-        return (combinedAlpha << 24) | (color & 0xFFFFFF);
-    }
 
     private static int opaque(int color) {
         return ((color >>> 24) & 0xFF) == 0 ? color | 0xFF000000 : color;
@@ -508,7 +508,6 @@ public class GuiCompat {
 
     private static void resetShaderColor() {
         setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-        disableBlend();
     }
     /** Presents a tooltip after the screen contents on legacy Forge. */
     public static void scheduleTooltip(GuiGraphics graphics, Font font, Component tooltip, int x, int y) {

@@ -25,7 +25,9 @@ public class EventContext<T> {
     private final List<UUID> pulledFutures = new ArrayList<>();
     private final HashMap<Index, T> createdResources = new HashMap<>();
     private final Mutable<Optional<T>> debugExportObject;
-    private final HashMap<Index, List<Mutable<T>>> capturedFiles = new HashMap<>();
+    private final Map<Index, List<CapturedFile<T>>> capturedFiles = new HashMap<>();
+
+    private record CapturedFile<T>(Resource original, Mutable<T> value, boolean decoded) {}
 
     protected EventContext(T file, Index index, EventEntry<T> entry, RuneweaverRuntime<?> runtime, Map.Entry<Index, Resource> resourceEntry, boolean markedForDeletion) {
         this.file = new MutableObject<>(file);
@@ -90,13 +92,22 @@ public class EventContext<T> {
         if(maybeResourceList.isEmpty()) return List.of();
         List<Resource> resourceList = maybeResourceList.get();
         List<Mutable<T>> resultList = new ArrayList<>();
-        List<Mutable<T>> keepingList = new ArrayList<>();
-        for(Resource r : resourceList) {
-            T deserializedFile = deserializeFile(this.getEvent().codec(), r, error -> runtime.error(error, getEvent(), resourceEntry.getKey().id())).orElse(null);
-            resultList.add(new MutableObject<>(deserializedFile));
-            if(deserializedFile != null) keepingList.add(new MutableObject<>(deserializedFile));
+        List<CapturedFile<T>> keepingList = new ArrayList<>();
+        for (int position = 0; position < resourceList.size(); position++) {
+            Resource original = resourceList.get(position);
+            int ordinal = id.ordinal() == -1 ? position : id.ordinal();
+            Mutable<T> captured;
+            if (id.idEquals(index) && ordinal == index.ordinal()) {
+                captured = file;
+            } else {
+                T deserialized = deserializeFile(getEvent().codec(), original,
+                        error -> runtime.error(error, getEvent(), resourceEntry.getKey().id())).orElse(null);
+                captured = new MutableObject<>(deserialized);
+            }
+            resultList.add(captured);
+            keepingList.add(new CapturedFile<>(original, captured, captured.getValue() != null));
         }
-        capturedFiles.put(id, keepingList);
+        if (!keepingList.isEmpty()) capturedFiles.put(id, keepingList);
         return resultList;
     }
 
@@ -134,14 +145,19 @@ public class EventContext<T> {
     }
 
     protected void cleanupCapturedFiles() throws IOException {
-        for(Map.Entry<Index, List<Mutable<T>>> captureEntry : capturedFiles.entrySet()) {
+        for (var captureEntry : capturedFiles.entrySet()) {
             List<Resource> resources = new ArrayList<>(captureEntry.getValue().size());
-            for(Mutable<T> resource : captureEntry.getValue()) {
-                T resourceFile = resource.getValue();
-                if(resourceFile == null) {
-                    runtime.error(new RuneweaverException("captured file with index {} cannot be null", captureEntry.getKey()), getEvent(), captureEntry.getKey().id());
+            for (CapturedFile<T> captured : captureEntry.getValue()) {
+                T resourceFile = captured.value().getValue();
+                if (resourceFile == null) {
+                    if (captured.decoded()) {
+                        runtime.error(new RuneweaverException("captured file with index {} cannot be null", captureEntry.getKey()),
+                                getEvent(), captureEntry.getKey().id());
+                    }
+                    resources.add(captured.original());
+                } else {
+                    resources.add(getEvent().codec().serialize(captured.original(), resourceFile));
                 }
-                resources.add(getEvent().codec().serialize(resourceEntry.getValue(), resourceFile));
             }
             runtime.getHook().insert(captureEntry.getKey(), resources, getEvent().codec().extensionAndDot(), true);
         }

@@ -14,6 +14,10 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 
 @SuppressWarnings("unused")
 public interface RuneweaverCodecs {
@@ -27,27 +31,30 @@ public interface RuneweaverCodecs {
         @Override
         public JsonElement deserialize(Resource r) throws IOException {
             //? if <1.19 {
-            /*return JsonParser.parseReader(new java.io.InputStreamReader(r.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
+            /*try (Reader reader = new InputStreamReader(open(r), StandardCharsets.UTF_8)) {
             *///?} else {
-            return JsonParser.parseReader(r.openAsReader());
+            try (Reader reader = r.openAsReader()) {
             //?}
+                return JsonParser.parseReader(reader);
+            }
         }
 
         @Override
         public Resource serialize(Resource r, JsonElement x) {
+            byte[] bytes = x.toString().getBytes(StandardCharsets.UTF_8);
             //? if <1.19 {
-            /*return new net.rasanovum.runeweaver.util.LegacyResource(r, x.toString().getBytes());
+            /*return new net.rasanovum.runeweaver.util.LegacyResource(r, bytes);
             *///?} else if <1.19.3 {
-            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(x.toString().getBytes()), r::metadata);
+            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(bytes), r::metadata);
             *///?} else {
-            return new Resource(r.source(), () -> new ByteArrayInputStream(x.toString().getBytes()), r::metadata);
+            return new Resource(r.source(), () -> new ByteArrayInputStream(bytes), r::metadata);
             //?}
         }
 
         @Override
         public ByteArrayOutputStream export(JsonElement resource) throws IOException {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            baos.write(new GsonBuilder().setPrettyPrinting().create().toJson(resource).getBytes());
+            baos.write(new GsonBuilder().setPrettyPrinting().create().toJson(resource).getBytes(StandardCharsets.UTF_8));
             return baos;
         }
     };
@@ -60,17 +67,20 @@ public interface RuneweaverCodecs {
 
         @Override
         public BufferedImage deserialize(Resource r) throws IOException {
-            return ImageIO.read(open(r));
+            try (InputStream input = open(r)) {
+                return ImageIO.read(input);
+            }
         }
 
         @Override
         public Resource serialize(Resource r, BufferedImage x) throws IOException {
+            byte[] bytes = bufferedImageToStream(x).toByteArray();
             //? if <1.19 {
-            /*return new net.rasanovum.runeweaver.util.LegacyResource(r, bufferedImageToStream(x).toByteArray());
+            /*return new net.rasanovum.runeweaver.util.LegacyResource(r, bytes);
             *///?} else if <1.19.3 {
-            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(bufferedImageToStream(x).toByteArray()), r::metadata);
+            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(bytes), r::metadata);
             *///?} else {
-            return new Resource(r.source(), () -> new ByteArrayInputStream(bufferedImageToStream(x).toByteArray()), r::metadata);
+            return new Resource(r.source(), () -> new ByteArrayInputStream(bytes), r::metadata);
             //?}
         }
 
@@ -88,21 +98,24 @@ public interface RuneweaverCodecs {
 
         @Override
         public CompoundTag deserialize(Resource r) throws IOException {
-            //? if >1.20.1 {
-            return NbtIo.readCompressed(open(r), NbtAccounter.unlimitedHeap());
-            //?} else {
-            /*return NbtIo.readCompressed(open(r));
-            *///?}
+            try (InputStream input = open(r)) {
+                //? if >1.20.1 {
+                return NbtIo.readCompressed(input, NbtAccounter.unlimitedHeap());
+                //?} else {
+                /*return NbtIo.readCompressed(input);
+                *///?}
+            }
         }
 
         @Override
         public Resource serialize(Resource r, CompoundTag x) throws IOException {
+            byte[] bytes = nbtToStream(x).toByteArray();
             //? if <1.19 {
-            /*return new net.rasanovum.runeweaver.util.LegacyResource(r, nbtToStream(x).toByteArray());
+            /*return new net.rasanovum.runeweaver.util.LegacyResource(r, bytes);
             *///?} else if <1.19.3 {
-            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(nbtToStream(x).toByteArray()), r::metadata);
+            /*return new Resource(r.sourcePackId(), () -> new ByteArrayInputStream(bytes), r::metadata);
             *///?} else {
-            return new Resource(r.source(), () -> new ByteArrayInputStream(nbtToStream(x).toByteArray()), r::metadata);
+            return new Resource(r.source(), () -> new ByteArrayInputStream(bytes), r::metadata);
             //?}
         }
 
@@ -112,7 +125,7 @@ public interface RuneweaverCodecs {
         }
     };
 
-    private static java.io.InputStream open(Resource resource) throws IOException {
+    private static InputStream open(Resource resource) throws IOException {
         //? if <1.19 {
         /*return resource.getInputStream();
         *///?} else {

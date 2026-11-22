@@ -16,16 +16,18 @@ apply(from = rootProject.file("gradle/rosetta-pack-metadata.gradle.kts"))
 
 apply(from = rootProject.file("gradle/rosetta-release-size.gradle.kts"))
 
-if (prop("deps.minecraft") in setOf("1.18.2", "1.19.2")) {
-    mixin {
-        add(sourceSets.main.get(), "rosetta.refmap.json")
-        config("rosetta-client.mixins.json")
-        if (prop("deps.minecraft") == "1.18.2") config("rosetta-legacy.mixins.json")
-    }
-    dependencies { annotationProcessor("org.spongepowered:mixin:0.8.7:processor") }
-    tasks.jar {
-        manifest.attributes["MixinConfigs"] = if (prop("deps.minecraft") == "1.18.2")
-            "rosetta-client.mixins.json,rosetta-legacy.mixins.json" else "rosetta-client.mixins.json"
-        from("accesstransformer.cfg") { into("META-INF") }
-    }
+val legacy = prop("deps.minecraft") in setOf("1.18.2", "1.19.2")
+val mixinConfigs = buildList {
+    add("rosetta-common.mixins.json")
+    if (legacy) add("rosetta-client.mixins.json")
+    if (prop("deps.minecraft") == "1.18.2") add("rosetta-legacy.mixins.json")
+}
+mixin {
+    add(sourceSets.main.get(), "rosetta.refmap.json")
+    mixinConfigs.forEach { config(it) }
+}
+dependencies { annotationProcessor("org.spongepowered:mixin:0.8.7:processor") }
+tasks.jar {
+    manifest.attributes["MixinConfigs"] = mixinConfigs.joinToString(",")
+    if (legacy) from("accesstransformer.cfg") { into("META-INF") }
 }

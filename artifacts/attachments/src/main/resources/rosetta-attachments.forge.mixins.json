@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "refmap": "rosetta-attachments.refmap.json",
+  "package": "net.rasanovum.rosetta.attachment.mixin",
+  "compatibilityLevel": "${mixin_compatibility}",
+  "mixins": ["ForgeLevelChunkMixin"],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -16,25 +16,28 @@ public class RuneweaverRuntime<T> {
 
     private final AbstractHook<T> hook;
     private final BiConsumer<String, Exception> errorCallback;
-    private final List<AbstractEntry> queuedEvents = new ArrayList<>();
+    private final List<AbstractEntry> queuedEvents;
+    private int nextEntry;
 
     protected RuneweaverRuntime(AbstractHook<T> hook, RuneweaverRegistry<RuneweaverEvent<?>> eventRegistry, RuneweaverRegistry<ResourceReference<?>> referenceRegistry, BiConsumer<String, Exception> logCallback) {
+        this(hook, merge(eventRegistry, referenceRegistry), logCallback);
+    }
+
+    RuneweaverRuntime(AbstractHook<T> hook, List<AbstractEntry> entries, BiConsumer<String, Exception> logCallback) {
         this.hook = hook;
         this.errorCallback = logCallback;
-        TreeMap<Integer, List<AbstractEntry>> combinedEntries = new TreeMap<>();
-        SortedMap<Integer, List<ResourceReference<?>>> references = referenceRegistry.captureSnapshot();
-        for(int priority : references.keySet()) {
-            List<ResourceReference<?>> builtReference = references.get(priority);
-            List<AbstractEntry> entries = combinedEntries.computeIfAbsent(priority, ignored -> new ArrayList<>());
-            builtReference.stream().map((reference) -> new ReferenceEntry<>(priority, reference)).forEach(entries::add);
-        }
-        SortedMap<Integer, List<RuneweaverEvent<?>>> events = eventRegistry.captureSnapshot();
-        for(int priority : events.keySet()) {
-            List<RuneweaverEvent<?>> builtEvents = events.get(priority);
-            List<AbstractEntry> entries = combinedEntries.computeIfAbsent(priority, ignored -> new ArrayList<>());
-            builtEvents.stream().map((event) -> new EventEntry<>(priority, event)).forEach(entries::add);
-        }
-        combinedEntries.values().forEach(queuedEvents::addAll);
+        this.queuedEvents = new ArrayList<>(entries);
+    }
+
+    static List<AbstractEntry> merge(RuneweaverRegistry<RuneweaverEvent<?>> events,
+                                     RuneweaverRegistry<ResourceReference<?>> references) {
+        List<AbstractEntry> entries = new ArrayList<>();
+        references.captureSnapshot().forEach((priority, values) ->
+                values.forEach(reference -> entries.add(new ReferenceEntry<>(priority, reference))));
+        events.captureSnapshot().forEach((priority, values) ->
+                values.forEach(event -> entries.add(new EventEntry<>(priority, event))));
+        entries.sort(Comparator.comparingInt(AbstractEntry::priority));
+        return List.copyOf(entries);
     }
 
     public AbstractHook<T> getHook() {
@@ -42,16 +45,16 @@ public class RuneweaverRuntime<T> {
     }
 
     protected AbstractEntry pop() {
-        return queuedEvents.remove(0);
+        return queuedEvents.get(nextEntry++);
     }
 
     protected boolean isRunning() {
-        return !queuedEvents.isEmpty();
+        return nextEntry < queuedEvents.size();
     }
 
     protected void insertEntry(AbstractEntry entry) {
         int priority = entry.priority();
-        for (int i = 0; i < queuedEvents.size(); i++) {
+        for (int i = nextEntry; i < queuedEvents.size(); i++) {
             AbstractEntry abstractEntry = queuedEvents.get(i);
             if(abstractEntry.priority() <= priority) continue;
             queuedEvents.add(i, entry);
@@ -61,7 +64,7 @@ public class RuneweaverRuntime<T> {
     }
 
     protected void cancelEvent(UUID uuid) {
-        for (int i = 0; i < queuedEvents.size(); i++) {
+        for (int i = nextEntry; i < queuedEvents.size(); i++) {
             AbstractEntry abstractEntry = queuedEvents.get(i);
             if(abstractEntry instanceof EventEntry<?> eventEntry) if(eventEntry.event().uuid().equals(uuid)) {
                 queuedEvents.remove(i);

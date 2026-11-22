@@ -12,3 +12,9 @@ out/
 **/test/
 **/tests/
 /scripts
+
+# Keep the checked-in regression fixtures visible while local test sources stay ignored.
+!**/src/test/
+**/src/test/**
+!**/src/test/**/
+!**/src/test/**/*RegressionTest.java

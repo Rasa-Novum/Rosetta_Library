@@ -3,7 +3,6 @@ package net.rasanovum.runeweaver.hooks;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.rasanovum.runeweaver.util.Index;
-import net.rasanovum.runeweaver.util.RuneweaverUtil;
 import net.rasanovum.runeweaver.util.VersionUtils;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -22,58 +21,35 @@ public class ListHook extends AbstractHook<Map<Identifier, List<Resource>>> {
 
     @Override
     public Optional<List<Resource>> captureFiles(Index index, String fileExt) {
-        List<Resource> list = this.attachedResources.get(VersionUtils.withSuffix(index.id(), fileExt));
-        if(list == null) return Optional.empty();
-        if(index.ordinal() == -1) return Optional.of(list);
-        return Optional.of(List.of(list.get(index.ordinal())));
+        List<Resource> list = attachedResources.get(VersionUtils.withSuffix(index.id(), fileExt));
+        return list == null ? Optional.empty() : captureOrdinal(list, index.ordinal());
     }
 
     @Override
     public List<Map.Entry<Index, Resource>> getMatching(Predicate<Index> predicate) {
-        List<Map.Entry<Index, Resource>> result = new ArrayList<>();
-        for(Map.Entry<Identifier, List<Resource>> entry : this.attachedResources.entrySet()) {
-            for(int i = 0; i < entry.getValue().size(); i++) {
-                if(predicate.test(new Index(entry.getKey(), i))) {
-                    result.add(Map.entry(new Index(RuneweaverUtil.removeExtension(entry.getKey()), i), entry.getValue().get(i)));
-                }
-            }
-        }
-        return result;
+        List<Map.Entry<Index, Resource>> matches = new ArrayList<>();
+        attachedResources.forEach((id, resources) -> addMatches(matches, id, resources, predicate));
+        return matches;
     }
 
     @Override
     public void insert(Index index, List<Resource> resources, String fileExt, boolean overwrite) {
-        if(resources.isEmpty())
-            throw new IllegalArgumentException("Cannot insert empty resource list");
-        Index suffixedIndex = index.withSuffixedId(fileExt);
-        List<Resource> immutableList = this.attachedResources.get(suffixedIndex.id());
-        if(index.ordinal() == -1) {
-            if(immutableList == null)
-                this.attachedResources.put(suffixedIndex.id(), resources);
-            else if(!overwrite)
-                throw new IllegalStateException("Cannot set list resource without overwrite permission");
-            else this.attachedResources.put(suffixedIndex.id(), resources);
-            return;
-        }
-        if(resources.size() != 1)
-            throw new IllegalArgumentException("Cannot insert resource list with index "+index);
-        Resource resource = resources.get(0);
-        List<Resource> mutableList = new ArrayList<>(immutableList != null ? immutableList : List.of());
-        if(overwrite)
-            mutableList.set(index.ordinal(), resource);
-        else
-            mutableList.add(index.ordinal(), resource);
-        this.attachedResources.put(suffixedIndex.id(), mutableList);
+        Identifier id = VersionUtils.withSuffix(index.id(), fileExt);
+        List<Resource> existing = attachedResources.get(id);
+        List<Resource> updated = new ArrayList<>(existing == null ? List.of() : existing);
+        insertOrdinal(updated, index, resources, overwrite || (existing == null && index.ordinal() == -1));
+        if (updated.isEmpty()) attachedResources.remove(id);
+        else attachedResources.put(id, updated);
     }
 
     @Override
     public void delete(Index index, String fileExt) {
-        List<Resource> immutableList = this.attachedResources.get(VersionUtils.withSuffix(index.id(), fileExt));
-        if(immutableList == null) return;
-        List<Resource> mutableList = new ArrayList<>(immutableList);
-        if(index.ordinal() >= mutableList.size())
-            throw new IllegalStateException("Cannot delete resource: Resource with index " + index + " does not exists");
-        mutableList.remove(index.ordinal());
-        this.attachedResources.put(VersionUtils.withSuffix(index.id(), fileExt), mutableList);
+        Identifier id = VersionUtils.withSuffix(index.id(), fileExt);
+        List<Resource> existing = attachedResources.get(id);
+        if (existing == null) return;
+        List<Resource> updated = new ArrayList<>(existing);
+        deleteOrdinal(updated, index.ordinal());
+        if (updated.isEmpty()) attachedResources.remove(id);
+        else attachedResources.put(id, updated);
     }
 }

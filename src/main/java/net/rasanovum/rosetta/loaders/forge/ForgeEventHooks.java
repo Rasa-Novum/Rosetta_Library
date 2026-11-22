@@ -27,7 +27,7 @@ import net.rasanovum.rosetta.event.ServerHooks;
 
 @Mod.EventBusSubscriber(modid = "rosetta_library")
 public final class ForgeEventHooks {
-    private static MinecraftServer server;
+    private static volatile MinecraftServer server;
 
     private ForgeEventHooks() {}
 
@@ -77,8 +77,8 @@ public final class ForgeEventHooks {
 
     @SubscribeEvent
     public static void dataPackReloaded(TagsUpdatedEvent event) {
-        if (server != null && event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) {
-            MinecraftServer currentServer = server;
+        MinecraftServer currentServer = server;
+        if (currentServer != null && event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) {
             currentServer.execute(() -> {
                 if (server == currentServer) {
                     ServerHooks.dataPackReloaded(currentServer);
@@ -99,6 +99,7 @@ public final class ForgeEventHooks {
     @SubscribeEvent
     public static void chunkWatch(ChunkWatchEvent.Watch event) {
         //? if <1.19 {
+        if (!ServerHooks.hasChunkSentListeners()) return;
         ServerHooks.chunkSent(event.getPlayer(), event.getWorld(), event.getWorld().getChunk(event.getPos().x, event.getPos().z));
         //?} else {
         ServerHooks.chunkSent(event.getPlayer(), event.getLevel(), event.getChunk());

@@ -14,3 +14,10 @@ apply(from = rootProject.file("gradle/rosetta-pack-metadata.gradle.kts"))
 apply(from = rootProject.file("gradle/rosetta-module-dependencies.gradle.kts"))
 
 apply(from = rootProject.file("gradle/rosetta-release-size.gradle.kts"))
+
+mixin {
+    add(sourceSets.main.get(), "rosetta-attachments.refmap.json")
+    config("rosetta-attachments.forge.mixins.json")
+}
+dependencies { annotationProcessor("org.spongepowered:mixin:0.8.7:processor") }
+tasks.jar { manifest.attributes["MixinConfigs"] = "rosetta-attachments.forge.mixins.json" }

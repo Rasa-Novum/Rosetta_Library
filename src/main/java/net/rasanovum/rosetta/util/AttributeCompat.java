@@ -3,18 +3,27 @@ import net.minecraft.resources.ResourceLocation;
 
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.rasanovum.rosetta.mixin.common.AttributeInstanceAccessor;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
 /** Attribute modifier helpers. */
 public final class AttributeCompat {
+    //? if >=1.21 {
+    private static final Map<String, ResourceLocation> MODIFIER_IDS = new ConcurrentHashMap<>();
+    //?} else {
+    /*private static final Map<String, UUID> MODIFIER_IDS = new ConcurrentHashMap<>();
+    *///?}
+
     private AttributeCompat() {}
 
     //? if >=1.21 {
     public static AttributeModifier movementSpeedMultiplier(String modifierKey, double amount) {
-        return new AttributeModifier(RegistryCompat.getLocation(modifierKey), amount, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        return new AttributeModifier(attributeModifierId(modifierKey), amount, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
     }
     //?} else {
     /*public static AttributeModifier movementSpeedMultiplier(String modifierKey, double amount) {
@@ -24,7 +33,7 @@ public final class AttributeCompat {
 
     public static boolean hasModifier(AttributeInstance attribute, String modifierKey) {
         //? if >=1.21 {
-        return attribute.getModifier(RegistryCompat.getLocation(modifierKey)) != null;
+        return attribute.getModifier(attributeModifierId(modifierKey)) != null;
         //?} else {
         /*return attribute.getModifier(attributeModifierUuid(modifierKey)) != null;
         *///?}
@@ -32,7 +41,7 @@ public final class AttributeCompat {
 
     public static void removeModifier(AttributeInstance attribute, String modifierKey) {
         //? if >=1.21 {
-        attribute.removeModifier(RegistryCompat.getLocation(modifierKey));
+        attribute.removeModifier(attributeModifierId(modifierKey));
         //?} else {
         /*attribute.removeModifier(attributeModifierUuid(modifierKey));
         *///?}
@@ -40,7 +49,7 @@ public final class AttributeCompat {
 
     public static String canonicalModifierKey(String modifierKey) {
         //? if >=1.21 {
-        return RegistryCompat.getLocation(modifierKey).toString();
+        return attributeModifierId(modifierKey).toString();
         //?} else {
         /*return attributeModifierUuid(modifierKey).toString();
         *///?}
@@ -55,44 +64,48 @@ public final class AttributeCompat {
     }
 
     public static double calculateAttributeValueSkipping(AttributeInstance attribute, Predicate<AttributeModifier> skipModifier) {
-        double baseValue = attribute.getBaseValue();
-        AttributeModifier[] modifiers = attribute.getModifiers().toArray(AttributeModifier[]::new);
-        for (int i = 0; i < modifiers.length; i++) {
-            if (skipModifier.test(modifiers[i])) modifiers[i] = null;
-        }
-
+        double value = calculateValue(attribute.getBaseValue(),
+                ((AttributeInstanceAccessor) attribute).rosetta$modifiers().values(), skipModifier);
         //? if >=1.21 {
-        for (AttributeModifier modifier : modifiers) {
-            if (modifier != null && modifier.operation() == AttributeModifier.Operation.ADD_VALUE) baseValue += modifier.amount();
-        }
-        double value = baseValue;
-        for (AttributeModifier modifier : modifiers) {
-            if (modifier != null && modifier.operation() == AttributeModifier.Operation.ADD_MULTIPLIED_BASE) value += baseValue * modifier.amount();
-        }
-        for (AttributeModifier modifier : modifiers) {
-            if (modifier != null && modifier.operation() == AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL) value *= 1.0D + modifier.amount();
-        }
         return attribute.getAttribute().value().sanitizeValue(value);
         //?} else {
-        /*for (AttributeModifier modifier : modifiers) {
-            if (modifier != null && modifier.getOperation() == AttributeModifier.Operation.ADDITION) baseValue += modifier.getAmount();
-        }
-        double value = baseValue;
-        for (AttributeModifier modifier : modifiers) {
-            if (modifier != null && modifier.getOperation() == AttributeModifier.Operation.MULTIPLY_BASE) value += baseValue * modifier.getAmount();
-        }
-        for (AttributeModifier modifier : modifiers) {
-            if (modifier != null && modifier.getOperation() == AttributeModifier.Operation.MULTIPLY_TOTAL) value *= 1.0D + modifier.getAmount();
-        }
-        return attribute.getAttribute().sanitizeValue(value);
+        /*return attribute.getAttribute().sanitizeValue(value);
         *///?}
     }
 
-    //? if <1.21 {
+    static double calculateValue(double base, Iterable<AttributeModifier> modifiers, Predicate<AttributeModifier> skipModifier) {
+        double baseMultiplier = 0.0;
+        double totalMultiplier = 1.0;
+        for (AttributeModifier modifier : modifiers) {
+            if (skipModifier.test(modifier)) continue;
+            double amount = amount(modifier);
+            //? if >=1.21 {
+            switch (modifier.operation()) {
+                case ADD_VALUE -> base += amount;
+                case ADD_MULTIPLIED_BASE -> baseMultiplier += amount;
+                case ADD_MULTIPLIED_TOTAL -> totalMultiplier *= 1.0 + amount;
+            }
+            //?} else {
+            /*switch (modifier.getOperation()) {
+                case ADDITION -> base += amount;
+                case MULTIPLY_BASE -> baseMultiplier += amount;
+                case MULTIPLY_TOTAL -> totalMultiplier *= 1.0 + amount;
+            }
+            *///?}
+        }
+        return (base + base * baseMultiplier) * totalMultiplier;
+    }
+
+    //? if >=1.21 {
+    private static ResourceLocation attributeModifierId(String modifierKey) {
+        return MODIFIER_IDS.computeIfAbsent(modifierKey, RegistryCompat::getLocation);
+    }
+    //?} else {
     /*private static UUID attributeModifierUuid(String modifierKey) {
-        return UUID.nameUUIDFromBytes(modifierKey.getBytes(StandardCharsets.UTF_8));
+        return MODIFIER_IDS.computeIfAbsent(modifierKey, key -> UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)));
     }
     *///?}
+
     public static double amount(AttributeModifier modifier) {
         //? if >=1.21 {
         return modifier.amount();

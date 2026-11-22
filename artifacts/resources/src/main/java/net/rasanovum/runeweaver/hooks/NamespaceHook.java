@@ -3,7 +3,6 @@ package net.rasanovum.runeweaver.hooks;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.rasanovum.runeweaver.util.Index;
-import net.rasanovum.runeweaver.util.RuneweaverUtil;
 import net.rasanovum.runeweaver.util.VersionUtils;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -23,56 +22,38 @@ public class NamespaceHook extends AbstractHook<List<Resource>> {
         this.resourceId = resourceId;
     }
 
+    public Identifier resourceId() {
+        return resourceId;
+    }
+
     @Override
     public Optional<List<Resource>> captureFiles(Index index, String fileExt) {
-        if(!VersionUtils.withSuffix(index.id(), fileExt).equals(this.resourceId))
-            return Optional.empty();
-        if(index.ordinal() == -1) return Optional.of(this.attachedResources);
-        return Optional.of(List.of(this.attachedResources.get(index.ordinal())));
+        if (!VersionUtils.withSuffix(index.id(), fileExt).equals(resourceId)) return Optional.empty();
+        return captureOrdinal(attachedResources, index.ordinal());
     }
 
     @Override
     public List<Map.Entry<Index, Resource>> getMatching(Predicate<Index> predicate) {
-        List<Map.Entry<Index, Resource>> result = new ArrayList<>();
-        Identifier withoutExtension = RuneweaverUtil.removeExtension(this.resourceId);
-        for(int i = 0; i < this.attachedResources.size(); i++) {
-            if(!predicate.test(new Index(this.resourceId, i))) continue;
-            result.add(Map.entry(new Index(withoutExtension, i), this.attachedResources.get(i)));
-        }
-        return result;
+        List<Map.Entry<Index, Resource>> matches = new ArrayList<>();
+        addMatches(matches, resourceId, attachedResources, predicate);
+        return matches;
     }
 
     @Override
     public void insert(Index index, List<Resource> resources, String fileExt, boolean overwrite) {
-        if(!VersionUtils.withSuffix(index.id(), fileExt).equals(this.resourceId))
-            throw new IllegalArgumentException("Namespace Hook cannot process index " + index + " with id: " + this.resourceId);
-        if(index.ordinal() == -1) {
-            if(!overwrite)
-                throw new IllegalStateException("Cannot set resource: missing overwrite permission");
-            this.attachedResources.clear();
-            this.attachedResources.addAll(resources);
-            return;
-        }
-        if(resources.size() != 1)
-            throw new IllegalArgumentException("Cannot insert resource: list with index "+index);
-        Resource resource = resources.get(0);
-        if(index.ordinal() >= this.attachedResources.size())
-            throw new IllegalStateException("Cannot overwrite resource: Resource with index " + index + " does not exists");
-        if(overwrite)
-            this.attachedResources.set(index.ordinal(), resource);
-        else
-            attachedResources.add(index.ordinal(), resource);
+        requireResource(index, fileExt);
+        insertOrdinal(attachedResources, index, resources, overwrite);
     }
 
     @Override
     public void delete(Index index, String fileExt) {
-        if(!VersionUtils.withSuffix(index.id(), fileExt).equals(this.resourceId))
-            throw new IllegalArgumentException("Namespace Hook cannot process index " + index + "with id: " + this.resourceId);
-        if(index.ordinal() >= this.attachedResources.size())
-            throw new IllegalStateException("Cannot delete resource: Resource with index " + index + " does not exists");
-        if(index.ordinal() == -1)
-            this.attachedResources.clear();
-        else
-            this.attachedResources.remove(index.ordinal());
+        requireResource(index, fileExt);
+        deleteOrdinal(attachedResources, index.ordinal());
+    }
+
+    private void requireResource(Index index, String fileExt) {
+        if (!VersionUtils.withSuffix(index.id(), fileExt).equals(resourceId)) {
+            throw new IllegalArgumentException("Namespace hook for " + resourceId + " cannot process " + index);
+        }
     }
 }

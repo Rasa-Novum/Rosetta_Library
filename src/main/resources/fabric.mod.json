@@ -13,7 +13,7 @@
   "license": "${mod_license}",
   "icon": "logo.png",
   "environment": "*",
-  "mixins": ["rosetta.mixins.json", "rosetta-client.mixins.json"],
+  "mixins": ["rosetta.mixins.json", "rosetta-common.mixins.json", "rosetta-client.mixins.json"],
   "entrypoints": {
     "main": ["net.rasanovum.rosetta.loaders.fabric.RosettaFabric"],
     "client": ["net.rasanovum.rosetta.loaders.fabric.RosettaFabricClient"]

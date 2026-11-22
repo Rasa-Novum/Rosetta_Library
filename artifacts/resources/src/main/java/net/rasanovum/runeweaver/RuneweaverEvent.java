@@ -36,6 +36,9 @@ public record RuneweaverEvent<T>(UUID uuid, RuneweaverCodec<T> codec, int priori
     }
 
     public Predicate<Index> getWrappedPredicate() {
+        if (resourcePredicate instanceof RuneweaverEventBuilder.ResourceFilePredicate file) {
+            return index -> file.matches(index.id());
+        }
         return (index) -> {
             String ext = codec.extensionAndDot();
             Identifier id = index.id();

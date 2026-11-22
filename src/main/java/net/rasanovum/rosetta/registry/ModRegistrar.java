@@ -356,13 +356,7 @@ public final class ModRegistrar {
         }
 
         public CreativeTabEntries add(RegistryHandle<? extends ItemLike> handle) {
-            requireCreativeDeclaring(tab);
-            Objects.requireNonNull(handle, "handle");
-            if (!handles.add(handle.id())) {
-                throw duplicate("registry handle '" + handle.id() + "'");
-            }
-            callbacks.add(output -> output.accept(handle.get()));
-            return this;
+            return addHandle(handle, output -> output.accept(handle.get()));
         }
 
         public CreativeTabEntries add(BlockItemEntry<?, ?> entry) {
@@ -372,13 +366,17 @@ public final class ModRegistrar {
 
         /** Add a registered item immediately after an existing item where the loader supports ordering. */
         public CreativeTabEntries addAfter(ItemLike after, RegistryHandle<? extends ItemLike> handle) {
-            requireCreativeDeclaring(tab);
             Objects.requireNonNull(after, "after");
+            return addHandle(handle, output -> output.insertAfter(after, handle.get()));
+        }
+
+        private CreativeTabEntries addHandle(RegistryHandle<? extends ItemLike> handle, Consumer<CreativeTabOutput> callback) {
+            requireCreativeDeclaring(tab);
             Objects.requireNonNull(handle, "handle");
             if (!handles.add(handle.id())) {
                 throw duplicate("registry handle '" + handle.id() + "'");
             }
-            callbacks.add(output -> output.insertAfter(after, handle.get()));
+            callbacks.add(callback);
             return this;
         }
 

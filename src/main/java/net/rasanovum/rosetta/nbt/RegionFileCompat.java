@@ -15,9 +15,9 @@ public final class RegionFileCompat {
 
     public static RegionFile open(String worldName, ResourceKey<Level> dimension, Path path, Path folder) throws IOException {
         //? if >1.20.1 {
-        return new RegionFile(new RegionStorageInfo(worldName, dimension, "chunk"), path, folder, true);
+        return new RegionFile(new RegionStorageInfo(worldName, dimension, "chunk"), path, folder, false);
         //?} else {
-        /*return new RegionFile(path, folder, true);
+        /*return new RegionFile(path, folder, false);
         *///?}
     }
 }

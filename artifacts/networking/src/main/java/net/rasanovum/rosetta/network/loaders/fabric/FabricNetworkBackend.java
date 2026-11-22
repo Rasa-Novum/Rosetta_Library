@@ -27,13 +27,7 @@ public final class FabricNetworkBackend implements NetworkBackend {
     public <T extends RosettaPacket> void registerServerbound(PacketDefinition<T> definition) {
         remember(definition);
         //? if >=1.21 {
-        CustomPacketPayload.Type<T> payloadType = new CustomPacketPayload.Type<>(definition.id());
-        var codec = CustomPacketPayload.codec(RosettaPacket::write, definition.reader()::apply);
-        RosettaPacket.registerType(definition.type(), payloadType);
-        //? if >=26.1
-        /*PayloadTypeRegistry.serverboundPlay().register(payloadType, codec);*/
-        //? if <26.1
-        PayloadTypeRegistry.playC2S().register(payloadType, codec);
+        var payloadType = registerPayload(definition, true);
         ServerPlayNetworking.registerGlobalReceiver(payloadType, (packet, context) ->
                 definition.serverboundHandler().handle(packet, context.player()));
         //?} else {
@@ -48,13 +42,7 @@ public final class FabricNetworkBackend implements NetworkBackend {
     public <T extends RosettaPacket> void registerClientbound(PacketDefinition<T> definition) {
         remember(definition);
         //? if >=1.21 {
-        CustomPacketPayload.Type<T> payloadType = new CustomPacketPayload.Type<>(definition.id());
-        var codec = CustomPacketPayload.codec(RosettaPacket::write, definition.reader()::apply);
-        RosettaPacket.registerType(definition.type(), payloadType);
-        //? if >=26.1
-        /*PayloadTypeRegistry.clientboundPlay().register(payloadType, codec);*/
-        //? if <26.1
-        PayloadTypeRegistry.playS2C().register(payloadType, codec);
+        var payloadType = registerPayload(definition, false);
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
             Client.register(payloadType, definition);
         }
@@ -64,6 +52,22 @@ public final class FabricNetworkBackend implements NetworkBackend {
         }
         *///?}
     }
+
+    //? if >=1.21 {
+    private static <T extends RosettaPacket> CustomPacketPayload.Type<T> registerPayload(
+            PacketDefinition<T> definition, boolean serverbound) {
+        CustomPacketPayload.Type<T> payloadType = new CustomPacketPayload.Type<>(definition.id());
+        var codec = CustomPacketPayload.codec(RosettaPacket::write, definition.reader()::apply);
+        //? if >=26.1 {
+        /*var registry = serverbound ? PayloadTypeRegistry.serverboundPlay() : PayloadTypeRegistry.clientboundPlay();
+        *///?} else {
+        var registry = serverbound ? PayloadTypeRegistry.playC2S() : PayloadTypeRegistry.playS2C();
+        //?}
+        registry.register(payloadType, codec);
+        RosettaPacket.registerType(definition.type(), payloadType);
+        return payloadType;
+    }
+    //?}
 
     @Override
     public void sendToServer(RosettaPacket packet) {

@@ -24,12 +24,14 @@ public class NamespaceResourceManagerMixin {
     @ModifyReturnValue(method = "getResourceStack", at = @At("RETURN"))
     //?}
     private List<Resource> runRuneweaverEvents(List<Resource> original, @Local(argsOnly = true) Identifier id) {
-        return Runeweaver.processHook(new NamespaceHook(original, id));
+        if (!Runeweaver.hasHandlers(id)) return original;
+        return Runeweaver.processHook(new NamespaceHook(new ArrayList<>(original), id));
     }
 
     //? if <1.19 {
     /*@ModifyReturnValue(method = "getResource", at = @At("RETURN"))
     private Resource runLegacyRuneweaverEvents(Resource original, Identifier id) throws java.io.IOException {
+        if (!Runeweaver.hasHandlers(id)) return original;
         List<Resource> result = Runeweaver.processHook(new NamespaceHook(new ArrayList<>(List.of(original)), id));
         if (result.isEmpty()) {
             original.close();
@@ -41,9 +43,10 @@ public class NamespaceResourceManagerMixin {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @ModifyReturnValue(method = "getResource", at = @At("RETURN"))
     private Optional<Resource> runRuneweaverEvents(Optional<Resource> original, Identifier id) {
-        if(original.isEmpty()) return Optional.empty();
+        if (original.isEmpty() || !Runeweaver.hasHandlers(id)) return original;
         List<Resource> result = Runeweaver.processHook(new NamespaceHook(new ArrayList<>(List.of(original.get())), id));
-        return Optional.ofNullable(result.get(0));
+        if (result.isEmpty()) return Optional.empty();
+        return result.get(0) == original.get() ? original : Optional.of(result.get(0));
     }
     //?}
 }

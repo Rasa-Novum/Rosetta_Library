@@ -26,9 +26,13 @@ public final class PacketCollections {
     }
 
     public static <T> List<T> read(FriendlyByteBuf buffer, Function<FriendlyByteBuf, T> reader) {
+        return read(buffer, 65_536, reader);
+    }
+
+    public static <T> List<T> read(FriendlyByteBuf buffer, int maxSize, Function<FriendlyByteBuf, T> reader) {
         int size = buffer.readVarInt();
-        if (size < 0) throw new IllegalArgumentException("Negative collection size: " + size);
-        List<T> values = new ArrayList<>();
+        if (size < 0 || size > maxSize) throw new IllegalArgumentException("Invalid collection size: " + size);
+        List<T> values = new ArrayList<>(Math.min(size, 1024));
         for (int i = 0; i < size; i++) values.add(reader.apply(buffer));
         return values;
     }

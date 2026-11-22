@@ -1,23 +1,27 @@
 package net.rasanovum.rosetta.network.loaders.forge;
 
 //? if forge {
-/*import net.minecraft.server.level.ServerPlayer;
+/*import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkDirection;
+import net.rasanovum.rosetta.util.RegistryCompat;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 import net.rasanovum.rosetta.network.NetworkBackend;
 import net.rasanovum.rosetta.network.PacketDefinition;
 import net.rasanovum.rosetta.network.RosettaPacket;
-import net.rasanovum.rosetta.util.RegistryCompat;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public final class ForgeNetworkBackend implements NetworkBackend {
-    private static final String PROTOCOL = "1";
-    private final Map<String, ChannelState> channels = new ConcurrentHashMap<>();
+    private static final String PROTOCOL = "2";
+    private static final Predicate<String> OPTIONAL_PACKET = NetworkRegistry.acceptMissingOr(PROTOCOL);
+    private final Set<String> namespaces = new HashSet<>();
     private final Map<Class<?>, SimpleChannel> packetChannels = new ConcurrentHashMap<>();
 
     @Override
@@ -30,12 +34,20 @@ public final class ForgeNetworkBackend implements NetworkBackend {
         register(definition, NetworkDirection.PLAY_TO_CLIENT);
     }
 
-    private <T extends RosettaPacket> void register(PacketDefinition<T> definition, NetworkDirection direction) {
-        ChannelState state = channels.computeIfAbsent(definition.id().getNamespace(), this::createChannel);
-        if (packetChannels.putIfAbsent(definition.type(), state.channel) != null) {
+    private synchronized <T extends RosettaPacket> void register(PacketDefinition<T> definition, NetworkDirection direction) {
+        if (packetChannels.containsKey(definition.type())) {
             throw new IllegalArgumentException("Packet class was registered twice: " + definition.type().getName());
         }
-        state.channel.messageBuilder(definition.type(), state.discriminator.getAndIncrement(), direction)
+        String namespace = definition.id().getNamespace();
+        if (!namespaces.contains(namespace)) {
+            NetworkRegistry.newSimpleChannel(RegistryCompat.getLocation(namespace, "rosetta"),
+                    () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);
+            namespaces.add(namespace);
+        }
+        // Forge scopes its byte-sized discriminator to a channel. The packet ID names that channel.
+        SimpleChannel channel = NetworkRegistry.newSimpleChannel(
+                packetChannelId(definition.id()), () -> PROTOCOL, OPTIONAL_PACKET, OPTIONAL_PACKET);
+        channel.messageBuilder(definition.type(), 0, direction)
                 .encoder(RosettaPacket::write)
                 .decoder(definition.reader())
                 //? if <1.19 {
@@ -55,24 +67,24 @@ public final class ForgeNetworkBackend implements NetworkBackend {
                     context.setPacketHandled(true);
                 })
                 .add();
+        packetChannels.put(definition.type(), channel);
     }
 
-    private ChannelState createChannel(String namespace) {
-        SimpleChannel channel = NetworkRegistry.newSimpleChannel(
-                RegistryCompat.getLocation(namespace, "rosetta"),
-                () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals
-        );
-        return new ChannelState(channel);
+    static ResourceLocation packetChannelId(ResourceLocation id) {
+        return RegistryCompat.getLocation(id.getNamespace(), "rosetta/" + id.getPath());
     }
 
     @Override
     public void sendToServer(RosettaPacket packet) {
-        channel(packet).sendToServer(packet);
+        Client.send(channel(packet), packet);
     }
 
     @Override
     public void sendToPlayer(RosettaPacket packet, ServerPlayer player) {
-        channel(packet).send(PacketDistributor.PLAYER.with(() -> player), packet);
+        SimpleChannel channel = channel(packet);
+        if (channel.isRemotePresent(player.connection.connection)) {
+            channel.send(PacketDistributor.PLAYER.with(() -> player), packet);
+        }
     }
 
     private SimpleChannel channel(RosettaPacket packet) {
@@ -81,16 +93,14 @@ public final class ForgeNetworkBackend implements NetworkBackend {
         return channel;
     }
 
-    private static final class ChannelState {
-        private final SimpleChannel channel;
-        private final AtomicInteger discriminator = new AtomicInteger();
-
-        private ChannelState(SimpleChannel channel) {
-            this.channel = channel;
-        }
-    }
-
     private static final class Client {
+        private static void send(SimpleChannel channel, RosettaPacket packet) {
+            var listener = net.minecraft.client.Minecraft.getInstance().getConnection();
+            if (listener != null && channel.isRemotePresent(listener.getConnection())) {
+                channel.sendToServer(packet);
+            }
+        }
+
         private static <T extends RosettaPacket> void handle(T packet, PacketDefinition<T> definition) {
             var minecraft = net.minecraft.client.Minecraft.getInstance();
             if (minecraft.level != null && minecraft.player != null) {

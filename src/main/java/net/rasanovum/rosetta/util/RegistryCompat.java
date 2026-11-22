@@ -18,7 +18,7 @@ public final class RegistryCompat {
         //? if <1.21 {
         /*return new ResourceLocation(base, path);
         *///?} else {
-        return ResourceLocation.parse(base + ":" + path);
+        return ResourceLocation.fromNamespaceAndPath(base, path);
         //?}
     }
 

@@ -10,19 +10,27 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /** Loader-neutral client connection and lifecycle hooks. */
 public final class ClientHooks {
     private static final List<Callbacks> CALLBACKS = new CopyOnWriteArrayList<>();
-    private static volatile boolean initialized;
+    private static boolean initialized;
 
     private ClientHooks() {}
 
     public static void register(Callbacks callbacks) {
         if (callbacks == null) throw new IllegalArgumentException("callbacks cannot be null");
-        CALLBACKS.add(callbacks);
-        if (initialized) callbacks.onClientInitialize();
+        synchronized (CALLBACKS) {
+            CALLBACKS.add(callbacks);
+            if (!initialized) return;
+        }
+        Minecraft.getInstance().execute(callbacks::onClientInitialize);
     }
 
     public static void clientInitialized() {
-        initialized = true;
-        CALLBACKS.forEach(Callbacks::onClientInitialize);
+        List<Callbacks> pending;
+        synchronized (CALLBACKS) {
+            if (initialized) return;
+            pending = List.copyOf(CALLBACKS);
+            initialized = true;
+        }
+        pending.forEach(Callbacks::onClientInitialize);
     }
     public static void joined(Player player) {
         CALLBACKS.forEach(c -> c.onJoin(player));

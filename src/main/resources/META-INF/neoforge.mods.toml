@@ -22,3 +22,6 @@ side="BOTH"
 
 [[mixins]]
 config="rosetta-client.mixins.json"
+
+[[mixins]]
+config="rosetta-common.mixins.json"

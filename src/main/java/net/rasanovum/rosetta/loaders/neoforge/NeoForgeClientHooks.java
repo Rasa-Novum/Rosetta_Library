@@ -22,8 +22,10 @@ public final class NeoForgeClientHooks {
 
     @SubscribeEvent
     public static void clientSetup(FMLClientSetupEvent event) {
-        RosettaEntrypoints.initializeClients();
-        ClientHooks.clientInitialized();
+        event.enqueueWork(() -> {
+            RosettaEntrypoints.initializeClients();
+            ClientHooks.clientInitialized();
+        });
         NeoForge.EVENT_BUS.addListener(NeoForgeClientHooks::playerLogin);
         NeoForge.EVENT_BUS.addListener(NeoForgeClientHooks::playerLogout);
         NeoForge.EVENT_BUS.addListener(NeoForgeClientHooks::clientTick);
@@ -43,7 +45,7 @@ public final class NeoForgeClientHooks {
     private static void clientTick(ClientTickEvent.Post event) { ClientHooks.endClientTick(); }
     private static void gameStopping(GameShuttingDownEvent event) { ClientHooks.clientStopping(); }
     private static void renderHud(RenderGuiEvent.Post event) {
-        ClientRenderHooks.renderHud(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaTicks());
+        ClientRenderHooks.renderHud(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
     }
 
     private static void renderWorld(RenderLevelStageEvent event) {
@@ -52,7 +54,7 @@ public final class NeoForgeClientHooks {
             Minecraft minecraft = Minecraft.getInstance();
             if (minecraft.level != null && minecraft.player != null) {
                 ClientRenderHooks.renderWorld(event.getPoseStack(), minecraft.level, minecraft.player,
-                        minecraft.getTimer().getGameTimeDeltaTicks(), event.getFrustum());
+                        minecraft.getTimer().getGameTimeDeltaPartialTick(false), event.getFrustum());
             }
         }
         //?}
@@ -70,7 +72,7 @@ public final class NeoForgeClientHooks {
             try {
             //?}
                 ClientRenderHooks.renderWorld(event.getPoseStack(), minecraft.level, minecraft.player,
-                        minecraft.getDeltaTracker().getGameTimeDeltaTicks(), null);
+                        minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false), null);
             //? if >=26.3 {
             } finally {
                 modelView.popMatrix();
