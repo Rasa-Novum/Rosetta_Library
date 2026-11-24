@@ -26,3 +26,10 @@ mandatory=true
 versionRange="[${rosetta_version},)"
 ordering="AFTER"
 side="BOTH"
+
+[[dependencies.rosetta_attachments]]
+modId="rosetta_networking"
+mandatory=true
+versionRange="[${module_version},)"
+ordering="AFTER"
+side="BOTH"

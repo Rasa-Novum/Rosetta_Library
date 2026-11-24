@@ -9,5 +9,6 @@ public final class AttachmentBootstrap {
         /*NeoForgeAttachmentBackend.register(modEventBus);*/
         //? if forge
         /*ForgeAttachmentBackend.register(modEventBus);*/
+        AttachmentSync.initialize();
     }
 }

@@ -61,6 +61,9 @@ extensions.configure<PublishingExtension> {
                 if (module != "core") {
                     dependency("net.rasanovum.rosetta", "rosetta-$target", rootProject.property("mod_version").toString())
                 }
+                if (module == "attachments") {
+                    dependency("net.rasanovum.rosetta", "rosetta-networking-$target", rootProject.property("module_version").toString())
+                }
                 if (module == "config") {
                     dependency("net.rasanovum.rosetta", "rosetta-networking-$target", rootProject.property("module_version").toString())
                     dependency("net.rasanovum.rosetta", "midnightlib-$target", project.version.toString())

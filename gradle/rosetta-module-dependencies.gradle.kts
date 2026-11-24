@@ -1,7 +1,7 @@
 val module = project.parent!!.name
 val dependenciesByModule = mapOf(
     "networking" to listOf("core"),
-    "attachments" to listOf("core"),
+    "attachments" to listOf("core", "networking"),
     "resources" to listOf("core"),
     "resources-sync" to listOf("core", "networking", "resources"),
     "config" to listOf("networking"),

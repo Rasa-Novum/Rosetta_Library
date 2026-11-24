@@ -1,11 +1,33 @@
 package net.rasanovum.rosetta.attachment;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.Dynamic;
+import java.util.Objects;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 
 /** Creates persistent, loader-native attachment keys. */
 public final class RosettaAttachments {
     private RosettaAttachments() {}
+
+    public static <T> Codec<T> nbtCodec(
+            Supplier<T> factory, Function<T, CompoundTag> save, BiConsumer<T, CompoundTag> load) {
+        Objects.requireNonNull(factory, "factory");
+        Objects.requireNonNull(save, "save");
+        Objects.requireNonNull(load, "load");
+        return Codec.PASSTHROUGH.xmap(
+                dynamic -> {
+                    T value = Objects.requireNonNull(factory.get(), "attachment factory returned null");
+                    if (dynamic.convert(NbtOps.INSTANCE).getValue() instanceof CompoundTag tag) {
+                        load.accept(value, tag);
+                    }
+                    return value;
+                },
+                value -> new Dynamic<>(NbtOps.INSTANCE, Objects.requireNonNull(save.apply(value), "save returned null")));
+    }
 
     public static LevelAttachments level(String namespace) { return new LevelAttachments(namespace(namespace)); }
     public static EntityAttachments entity(String namespace) { return new EntityAttachments(namespace(namespace)); }
