@@ -20,12 +20,14 @@ import net.rasanovum.rosetta.config.mixin.ConfigEntryAccessor;
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public final class ConfigSync {
     public static final int MAX_LENGTH = 30000;
     private static final Gson JSON = new Gson();
     private static final Map<String, Consumer<MinecraftServer>> SERVER_CHANGES = new ConcurrentHashMap<>();
+    private static final Map<String, ReentrantLock> IO_LOCKS = new ConcurrentHashMap<>();
     private static final ClassValue<List<Field>> SERVER_FIELDS = new ClassValue<>() {
         @Override protected List<Field> computeValue(Class<?> type) {
             return Arrays.stream(type.getFields()).filter(ConfigSync::isServerSetting).toList();
@@ -75,6 +77,16 @@ public final class ConfigSync {
 
     public static void onServerChange(String id, Consumer<MinecraftServer> callback) {
         SERVER_CHANGES.put(id, Objects.requireNonNull(callback));
+    }
+
+    public static void lock(String id) {
+        if (id != null) IO_LOCKS.computeIfAbsent(id, key -> new ReentrantLock()).lock();
+    }
+
+    public static void unlock(String id) {
+        if (id == null) return;
+        ReentrantLock lock = IO_LOCKS.get(id);
+        if (lock != null && lock.isHeldByCurrentThread()) lock.unlock();
     }
 
     public static boolean onServerThread() {
@@ -382,18 +394,8 @@ public final class ConfigSync {
                     if (!Objects.equals(value, read(info.field))) changes.add(info.fieldName, JSON.toJsonTree(value));
                 }
             }
-            Minecraft client = Minecraft.getInstance();
-            MinecraftServer singleplayer = client.getSingleplayerServer();
-            MidnightConfig config = configInstances.get(id);
-            if (singleplayer != null && config != null && !fields(config.configClass).isEmpty()) {
-                singleplayer.execute(() -> {
-                    MidnightConfig.write(id);
-                    client.execute(() -> changed(id));
-                });
-            } else {
-                MidnightConfig.write(id);
-                changed(id);
-            }
+            MidnightConfig.write(id);
+            changed(id);
             if (changes.size() > 0) RosettaNetwork.sendToServer(new Edit(id, changes.toString()));
         }
     }

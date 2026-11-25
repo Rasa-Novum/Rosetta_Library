@@ -54,8 +54,14 @@ public abstract class ConfigPersistenceMixin {
         return gson.toJson(values);
     }
 
+    @Inject(method = {"loadValuesFromJson", "writeChanges()V"}, at = @At("HEAD"))
+    private void rosettaConfig$lock(CallbackInfo ci) {
+        ConfigSync.lock(modid);
+    }
+
     @Inject(method = {"loadValuesFromJson", "writeChanges()V"}, at = @At("RETURN"))
     private void rosettaConfig$changed(CallbackInfo ci) {
+        ConfigSync.unlock(modid);
         if (!ConfigSync.fields(configClass).isEmpty()) ConfigSync.changed(modid);
     }
 }
