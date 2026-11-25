@@ -3,7 +3,7 @@
 Server-synchronized settings for MidnightLib. Handles sync between server and clients, restores previous local values upon leaving a server.
 
 ```text
-net.rasanovum.rosetta:rosetta-config-<minecraft>-<loader>:0.2.0
+net.rasanovum.rosetta:rosetta-config-<minecraft>-<loader>:0.2.1
 ```
 
 Requires core and networking; MidnightLib is bundled by Config on every loader. See [setup](../setup.md).

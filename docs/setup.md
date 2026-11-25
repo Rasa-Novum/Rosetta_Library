@@ -1,6 +1,6 @@
 # Setup
 
-Choose the artifacts your mod uses from the [artifact list](README.md). All runtime artifacts use Maven group `net.rasanovum.rosetta` and version `0.2.0`.
+Choose the artifacts your mod uses from the [artifact list](README.md). All runtime artifacts use Maven group `net.rasanovum.rosetta` and version `0.2.1`.
 
 Artifact names end in `<minecraft>-<loader>`. For example:
 
@@ -10,8 +10,8 @@ repositories {
 }
 
 dependencies {
-    implementation("net.rasanovum.rosetta:rosetta-26.3-fabric:0.2.0")
-    implementation("net.rasanovum.rosetta:rosetta-networking-26.3-fabric:0.2.0")
+    implementation("net.rasanovum.rosetta:rosetta-26.3-fabric:0.2.1")
+    implementation("net.rasanovum.rosetta:rosetta-networking-26.3-fabric:0.2.1")
 }
 ```
 
